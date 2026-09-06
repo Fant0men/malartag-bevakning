@@ -36,7 +36,7 @@ STATION_A = "Södertälje Syd"
 STATION_B = "Eskilstuna C"
 
 # Hur många minuters försening som ska trigga en notis.
-DELAY_THRESHOLD_MIN = 20
+DELAY_THRESHOLD_MIN = 1
 
 # Var vi sparar vilka förseningar vi redan har notifierat om,
 # så du inte får samma notis varje gång skriptet körs.
