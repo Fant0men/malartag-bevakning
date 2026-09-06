@@ -1,0 +1,50 @@
+# Lägg denna fil i ditt GitHub-repo som: .github/workflows/malartag_bevakning.yml
+#
+# Körs automatiskt var 15:e minut och skickar Pushover-notiser vid
+# förseningar/inställda tåg på sträckan Södertälje Syd <-> Eskilstuna.
+#
+# Kräver att du lagt in tre "secrets" i repot under:
+# Settings -> Secrets and variables -> Actions -> New repository secret
+#   RESROBOT_API_KEY
+#   PUSHOVER_TOKEN
+#   PUSHOVER_USER
+
+name: Mälartåg-bevakning
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # var 15:e minut, dygnet runt
+  workflow_dispatch: {}       # gör att du kan trigga körningen manuellt också
+
+permissions:
+  contents: write            # behövs för att spara state.json tillbaka till repot
+
+jobs:
+  check-trains:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checka ut repo
+        uses: actions/checkout@v4
+
+      - name: Sätt upp Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installera beroenden
+        run: pip install requests
+
+      - name: Kör bevakningsskriptet
+        env:
+          RESROBOT_API_KEY: ${{ secrets.RESROBOT_API_KEY }}
+          PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
+          PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
+        run: python malartag_bevakning.py
+
+      - name: Spara state.json tillbaka till repot (så vi minns vad vi redan notifierat)
+        run: |
+          git config user.name "malartag-bot"
+          git config user.email "actions@github.com"
+          git add state.json
+          git diff --staged --quiet || git commit -m "Uppdatera state"
+          git push
