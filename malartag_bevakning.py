@@ -60,6 +60,41 @@ def get_departures(station_id: str, direction_hint: str) -> list[dict]:
     """
     Hämtar realtidsavgångar från en station och filtrerar fram bara de
     som är på väg mot den andra stationen (via 'direction'-fältet)
+#!/usr/bin/env python3
+"""
+Bevakar tågtrafiken (Mälartåg) mellan Södertälje Syd och Eskilstuna
+och skickar en Pushover-notis vid förseningar eller inställda tåg.
+
+Datakälla: Trafiklab ResRobot Timetables API v2.1 (https://www.trafiklab.se)
+Notiser:   Pushover (https://pushover.net)
+
+Körs lämpligen var 10-15:e minut via cron, Task Scheduler eller
+GitHub Actions (se README.md för instruktioner).
+"""
+
+import json
+import os
+import sys
+from pathlib import Path
+
+import requests
+
+# --------------------------------------------------------------------------
+# KONFIGURATION – fyll i dina egna nycklar, antingen här direkt eller
+# (rekommenderat) via miljövariabler så du slipper ha hemligheter i koden.
+# --------------------------------------------------------------------------
+RESROBOT_API_KEY = os.environ.get("RESROBOT_API_KEY", "DIN_RESROBOT_NYCKEL")
+PUSHOVER_TOKEN = os.environ.get("PUSHOVER_TOKEN", "DIN_PUSHOVER_APP_TOKEN")
+PUSHOVER_USER = os.environ.get("PUSHOVER_USER", "DIN_PUSHOVER_USER_KEY")
+
+# Namnen som ResRobots stationssök ska matcha mot.
+STATION_A = "Södertälje Syd"
+STATION_B = "Eskilstuna C"
+
+# Hur många minuters försening som ska trigga en notis.
+DELAY_THRESHOLD_MIN = 20
+
+# Var vi sparar vilka förseningar vi redan har notifierat om,
     och som drivs av Mälartåg.
     """
     resp = requests.get(
@@ -126,51 +161,7 @@ def check_and_notify(departures: list[dict], state: dict, from_name: str) -> dic
     for dep in departures:
         train_id = f"{dep.get('name')}_{dep.get('date')}_{dep.get('time')}"
         cancelled = dep.get("cancelled", False)
-        delay = compute_delay_minutes(dep)
-
-        previous = state.get(train_id)
-
-        if cancelled and previous != "cancelled":
-            send_pushover(
-                "Tåg inställt",
-                f"{dep.get('name')} från {from_name} kl {dep['time']} är INSTÄLLT.",
-            )
-            state[train_id] = "cancelled"
-
-        elif delay >= DELAY_THRESHOLD_MIN and previous != delay:
-            send_pushover(
-                "Tågförsening",
-                f"{dep.get('name')} från {from_name} kl {dep['time']} "
-                f"är försenat {delay} minuter.",
-            )
-            state[train_id] = delay
-
-    return state
-
-
-def main() -> None:
-    missing = [
-        name
-        for name, val in [
-            ("RESROBOT_API_KEY", RESROBOT_API_KEY),
-            ("PUSHOVER_TOKEN", PUSHOVER_TOKEN),
-            ("PUSHOVER_USER", PUSHOVER_USER),
-        ]
-        if val.startswith("DIN_")
-    ]
-    if missing:
-        sys.exit(
-            "Saknar konfiguration för: "
-            + ", ".join(missing)
-            + ". Sätt dem som miljövariabler eller fyll i direkt i skriptet."
-        )
-
-    station_a_id = find_station_id(STATION_A)
-    station_b_id = find_station_id(STATION_B)
-
-    state = load_state()
-
-    departures_from_a = get_departures(station_a_id, direction_hint=STATION_B)
+TION_B)
     state = check_and_notify(departures_from_a, state, from_name=STATION_A)
 
     departures_from_b = get_departures(station_b_id, direction_hint=STATION_A)
