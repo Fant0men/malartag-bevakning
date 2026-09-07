@@ -1,11 +1,8 @@
 # Lägg denna fil i ditt GitHub-repo som: .github/workflows/malartag_bevakning.yml
 #
-# Körs automatiskt var 15:e minut och skickar Pushover-notiser vid
-# förseningar/inställda tåg på sträckan Södertälje Syd <-> Eskilstuna.
-#
-# Kräver att du lagt in tre "secrets" i repot under:
+# Kräver tre "secrets" i repot under:
 # Settings -> Secrets and variables -> Actions -> New repository secret
-#   RESROBOT_API_KEY
+#   TRAFIKVERKET_API_KEY
 #   PUSHOVER_TOKEN
 #   PUSHOVER_USER
 
@@ -13,17 +10,26 @@ name: Mälartåg-bevakning
 
 on:
   schedule:
-    - cron: "*/15 * * * *"   # var 15:e minut, dygnet runt
-  workflow_dispatch:          # gör att du kan trigga körningen manuellt också
+    - cron: "*/15 * * * *"   # löpande koll, var 15:e minut, dygnet runt
+    - cron: "0 21 * * *"     # daglig sammanfattning - se OBS nedan om tidszon
+  workflow_dispatch:
     inputs:
       debug:
-        description: "Skicka debug-notis med alla hittade tåg"
+        description: "Skicka debug-notis vid löpande koll"
         required: false
         default: false
         type: boolean
+      mode:
+        description: "Kör-läge (lämna som 'live' för normal koll)"
+        required: false
+        default: "live"
+        type: choice
+        options:
+          - live
+          - daily_summary
 
 permissions:
-  contents: write            # behövs för att spara state.json tillbaka till repot
+  contents: write
 
 jobs:
   check-trains:
@@ -40,15 +46,28 @@ jobs:
       - name: Installera beroenden
         run: pip install requests
 
+      - name: Bestäm läge utifrån schema/manuell körning
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ inputs.mode || 'live' }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "0 21 * * *" ]; then
+            echo "mode=daily_summary" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=live" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Kör bevakningsskriptet
         env:
-          RESROBOT_API_KEY: ${{ secrets.RESROBOT_API_KEY }}
+          TRAFIKVERKET_API_KEY: ${{ secrets.TRAFIKVERKET_API_KEY }}
           PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
           PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
           DEBUG_NOTIFY: ${{ inputs.debug || 'false' }}
+          MODE: ${{ steps.mode.outputs.mode }}
         run: python malartag_bevakning.py
 
-      - name: Spara state.json tillbaka till repot (så vi minns vad vi redan notifierat)
+      - name: Spara state.json tillbaka till repot
+        if: steps.mode.outputs.mode == 'live'
         run: |
           git config user.name "malartag-bot"
           git config user.email "actions@github.com"
