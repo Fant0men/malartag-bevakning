@@ -51,7 +51,7 @@ STATION_B = "Eskilstuna C"
 FEL_LINJE_ORD = ["nyköping", "norrköping", "vagnhärad", "trosa", "skavsta"]
 
 # Hur många minuters försening som ska trigga en notis.
-DELAY_THRESHOLD_MIN = 1
+DELAY_THRESHOLD_MIN = 20
 
 # Var vi sparar vilka förseningar vi redan har notifierat om,
 # så du inte får samma notis varje gång skriptet körs.
@@ -209,6 +209,34 @@ def send_debug_notification(all_departures: list[dict]) -> None:
     send_pushover("Debug: hittade tåg", message)
 
 
+def cross_check_same_trains(departures_a: list[dict], departures_b: list[dict]) -> None:
+    """
+    Matchar ihop samma tågnummer i de två stationernas avgångslistor (ett
+    och samma tåg passerar ju båda stationerna på sin resa) och loggar en
+    jämförelse av förseningen vid respektive station. Detta är en oberoende
+    dubbelkontroll av att rtTime-jämförelsen faktiskt fungerar korrekt -
+    om ett tåg är X minuter sent vid Södertälje Syd, bör det (ungefär)
+    vara i samma härad vid Eskilstuna C också, inte plötsligt "i tid".
+    """
+    by_name_a = {dep["name"]: dep for dep in departures_a}
+    by_name_b = {dep["name"]: dep for dep in departures_b}
+
+    common_names = set(by_name_a) & set(by_name_b)
+    if not common_names:
+        print("DEBUG: inga tåg hittades i båda stationernas listor samtidigt att jämföra.")
+        return
+
+    for name in sorted(common_names):
+        dep_a = by_name_a[name]
+        dep_b = by_name_b[name]
+        delay_a = compute_delay_minutes(dep_a)
+        delay_b = compute_delay_minutes(dep_b)
+        print(
+            f"DEBUG: korskoll {name} - vid {STATION_A} kl {dep_a.get('time')}: "
+            f"{delay_a} min sen | vid {STATION_B} kl {dep_b.get('time')}: {delay_b} min sen"
+        )
+
+
 def check_and_notify(departures: list[dict], state: dict) -> dict:
     for dep in departures:
         station_name = dep["_station_name"]
@@ -269,6 +297,8 @@ def main() -> None:
     departures_a = get_departures(station_a_id, STATION_A, search_date, search_time)
     departures_b = get_departures(station_b_id, STATION_B, search_date, search_time)
     all_departures = departures_a + departures_b
+
+    cross_check_same_trains(departures_a, departures_b)
 
     if history_hours or os.environ.get("DEBUG_NOTIFY", "false").lower() == "true":
         send_debug_notification(all_departures)
