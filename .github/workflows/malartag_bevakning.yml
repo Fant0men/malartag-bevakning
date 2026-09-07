@@ -21,6 +21,11 @@ on:
         required: false
         default: false
         type: boolean
+      history_hours:
+        description: "Historik-läge: kolla ankomster X timmar bakåt (lämna tomt för normal drift)"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: write            # behövs för att spara state.json tillbaka till repot
@@ -56,6 +61,7 @@ jobs:
           PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
           PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
           DEBUG_NOTIFY: ${{ inputs.debug || 'false' }}
+          HISTORY_HOURS_BACK: ${{ inputs.history_hours || '' }}
         run: python malartag_bevakning.py
 
       - name: Spara state.json tillbaka till repot (så vi minns vad vi redan notifierat)
