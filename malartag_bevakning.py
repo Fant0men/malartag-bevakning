@@ -52,7 +52,7 @@ STATION_B = "Eskilstuna C"
 # Syd (den mot Nyköping/Norrköping, som inte går via Eskilstuna).
 FEL_LINJE_ORD = ["nyköping", "norrköping", "vagnhärad", "trosa", "skavsta"]
 
-DELAY_THRESHOLD_MIN = 20
+DELAY_THRESHOLD_MIN = 1
 
 STATE_FILE = Path(__file__).parent / "state.json"
 RESROBOT_BASE = "https://api.resrobot.se/v2.1"
@@ -100,6 +100,7 @@ def get_arrivals(station_id: str, station_name: str) -> list[dict]:
     )
     resp.raise_for_status()
     arrivals = resp.json().get("Arrival", [])
+    print(f"DEBUG: arrivalBoard {station_name} - {len(arrivals)} poster totalt (ofiltrerat)")
 
     relevant = []
     for arr in arrivals:
@@ -107,11 +108,10 @@ def get_arrivals(station_id: str, station_name: str) -> list[dict]:
         origin = arr.get("origin", "")
         godkant = is_malartag(product) and is_ratt_linje(origin, station_name)
 
-        if station_name == STATION_A:
-            print(
-                f"DEBUG: {arr.get('name')} till {station_name}, ursprung='{origin}' "
-                f"- godkänt: {godkant}"
-            )
+        print(
+            f"DEBUG: {arr.get('name')} till {station_name}, ursprung='{origin}', "
+            f"operator='{product.get('operator', '')}' - godkänt: {godkant}"
+        )
 
         if godkant:
             arr["_station_name"] = station_name
@@ -234,3 +234,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+           
