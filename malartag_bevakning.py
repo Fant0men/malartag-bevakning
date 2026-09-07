@@ -48,7 +48,7 @@ TRAIN_NUMBERS = [
     "143", "965", "145", "971", "147", "977", "983", "989",
 ]
 
-DELAY_THRESHOLD_MIN = 20
+DELAY_THRESHOLD_MIN = 1
 
 STATE_FILE = Path(__file__).parent / "state.json"
 TRAFIKVERKET_URL = "https://api.trafikinfo.trafikverket.se/v2/data.json"
