@@ -51,7 +51,7 @@ STATION_B = "Eskilstuna C"
 FEL_LINJE_ORD = ["nyköping", "norrköping", "vagnhärad", "trosa", "skavsta"]
 
 # Hur många minuters försening som ska trigga en notis.
-DELAY_THRESHOLD_MIN = 1
+DELAY_THRESHOLD_MIN = 20
 
 # Var vi sparar vilka förseningar vi redan har notifierat om,
 # så du inte får samma notis varje gång skriptet körs.
@@ -142,7 +142,65 @@ def get_departures(
             continue
 
         dep["_station_name"] = station_name
+        dep["_event_type"] = "departure"
         relevant.append(dep)
+
+    return relevant
+
+
+def get_arrivals(
+    station_id: str,
+    station_name: str,
+    search_date: str | None = None,
+    search_time: str | None = None,
+) -> list[dict]:
+    """
+    Hämtar ankommande tåg till en station. Detta täcker in tåg som redan
+    avgått från sin startstation men inte hunnit fram än - en lucka som
+    get_departures() ensam missar, eftersom den bara visar KOMMANDE
+    avgångar. Ett tåg som är mitt i sin resa syns varken som en kommande
+    avgång vid startstationen (redan avgått) eller vid slutstationen
+    (inte framme än) - men det syns som en kommande ANKOMST hela vägen
+    fram tills det anländer.
+    """
+    params = {
+        "id": station_id,
+        "format": "json",
+        "accessId": RESROBOT_API_KEY,
+        "duration": 180,
+    }
+    if search_date:
+        params["date"] = search_date
+    if search_time:
+        params["time"] = search_time
+
+    resp = requests.get(f"{RESROBOT_BASE}/arrivalBoard", params=params, timeout=15)
+    resp.raise_for_status()
+    data = resp.json()
+    arrivals = data.get("Arrival", [])
+
+    relevant = []
+    for arr in arrivals:
+        product = arr.get("Product", [{}])[0]
+        # 'origin' är motsvarigheten till 'direction' för ankomster - visar
+        # varifrån tåget kom, vilket vi använder för samma linjefiltrering.
+        origin = arr.get("origin", "")
+        malartag = is_malartag(product)
+        ratt_linje = is_ratt_linje(origin, station_name)
+
+        print(
+            f"DEBUG: sett ankomst {arr.get('name')} till {station_name} "
+            f"från '{origin}' (operator='{product.get('operator', '')}', "
+            f"produktnamn='{product.get('name', '')}') - "
+            f"Mälartåg: {malartag}, rätt linje: {ratt_linje}"
+        )
+
+        if not (malartag and ratt_linje):
+            continue
+
+        arr["_station_name"] = station_name
+        arr["_event_type"] = "arrival"
+        relevant.append(arr)
 
     return relevant
 
@@ -194,10 +252,17 @@ def send_debug_notification(all_departures: list[dict]) -> None:
         status = "INSTÄLLT" if dep.get("cancelled") else (
             f"{delay} min sen" if delay > 0 else "i tid"
         )
-        lines.append(
-            f"{dep.get('name')} från {dep['_station_name']} kl {dep.get('time')} "
-            f"mot {dep.get('direction')} – {status}"
-        )
+        event_type = dep.get("_event_type", "departure")
+        if event_type == "arrival":
+            lines.append(
+                f"{dep.get('name')} ANLÄNDER {dep['_station_name']} kl {dep.get('time')} "
+                f"från {dep.get('origin')} – {status}"
+            )
+        else:
+            lines.append(
+                f"{dep.get('name')} avgår {dep['_station_name']} kl {dep.get('time')} "
+                f"mot {dep.get('direction')} – {status}"
+            )
 
     if not lines:
         message = (
@@ -240,7 +305,8 @@ def cross_check_same_trains(departures_a: list[dict], departures_b: list[dict]) 
 def check_and_notify(departures: list[dict], state: dict) -> dict:
     for dep in departures:
         station_name = dep["_station_name"]
-        train_id = f"{dep.get('name')}_{station_name}_{dep.get('date')}_{dep.get('time')}"
+        event_type = dep.get("_event_type", "departure")
+        train_id = f"{dep.get('name')}_{station_name}_{event_type}_{dep.get('date')}_{dep.get('time')}"
         cancelled = dep.get("cancelled", False)
         delay = compute_delay_minutes(dep)
 
@@ -296,15 +362,20 @@ def main() -> None:
 
     departures_a = get_departures(station_a_id, STATION_A, search_date, search_time)
     departures_b = get_departures(station_b_id, STATION_B, search_date, search_time)
+
+    arrivals_a = get_arrivals(station_a_id, STATION_A, search_date, search_time)
+    arrivals_b = get_arrivals(station_b_id, STATION_B, search_date, search_time)
+
     all_departures = departures_a + departures_b
+    all_events = all_departures + arrivals_a + arrivals_b
 
     cross_check_same_trains(departures_a, departures_b)
 
     if history_hours or os.environ.get("DEBUG_NOTIFY", "false").lower() == "true":
-        send_debug_notification(all_departures)
+        send_debug_notification(all_events)
 
     if not history_hours:
-        state = check_and_notify(all_departures, state)
+        state = check_and_notify(all_events, state)
         save_state(state)
 
 
