@@ -46,7 +46,7 @@ STATION_A = "Södertälje Syd"
 STATION_B = "Eskilstuna C"
 
 # Hur många minuters försening som ska trigga en notis.
-DELAY_THRESHOLD_MIN = 20
+DELAY_THRESHOLD_MIN = 1
 
 # Hur många kommande direkta resor 'trip' hämtar per riktning, för att bygga
 # listan över giltiga tågnummer för linjen. OBS: ResRobot verkar avvisa
