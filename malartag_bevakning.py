@@ -246,30 +246,41 @@ def send_pushover(title: str, message: str) -> None:
 
 
 def send_debug_notification(all_departures: list[dict]) -> None:
-    lines = []
+    """
+    Bygger en debug-notis. Pushover klipper av meddelanden efter ca 1024
+    tecken, så för att inte tappa viktig info (som ett faktiskt försenat
+    tåg) i slutet av en lång lista visas avvikande tåg (försenade/
+    inställda) i full detalj, medan tåg i tid bara summeras i en rad.
+    """
+    avvikande = []
+    i_tid_count = 0
+
     for dep in all_departures:
         delay = compute_delay_minutes(dep)
-        status = "INSTÄLLT" if dep.get("cancelled") else (
-            f"{delay} min sen" if delay > 0 else "i tid"
-        )
         event_type = dep.get("_event_type", "departure")
-        if event_type == "arrival":
-            lines.append(
-                f"{dep.get('name')} ANLÄNDER {dep['_station_name']} kl {dep.get('time')} "
-                f"från {dep.get('origin')} – {status}"
+        verb = "anländer" if event_type == "arrival" else "avgår"
+        riktningsord = "från" if event_type == "arrival" else "mot"
+        riktning = dep.get("origin") if event_type == "arrival" else dep.get("direction")
+
+        if dep.get("cancelled"):
+            avvikande.append(
+                f"{dep.get('name')} {verb} {dep['_station_name']} kl {dep.get('time')} "
+                f"{riktningsord} {riktning} – INSTÄLLT"
+            )
+        elif delay > 0:
+            avvikande.append(
+                f"{dep.get('name')} {verb} {dep['_station_name']} kl {dep.get('time')} "
+                f"{riktningsord} {riktning} – {delay} min sen"
             )
         else:
-            lines.append(
-                f"{dep.get('name')} avgår {dep['_station_name']} kl {dep.get('time')} "
-                f"mot {dep.get('direction')} – {status}"
-            )
+            i_tid_count += 1
 
-    if not lines:
-        message = (
-            f"Inga Mälartåg (rätt linje) hittades vid {STATION_A} eller {STATION_B}."
-        )
+    if not all_departures:
+        message = f"Inga Mälartåg (rätt linje) hittades vid {STATION_A} eller {STATION_B}."
+    elif avvikande:
+        message = "\n".join(avvikande) + f"\n\n({i_tid_count} övriga tåg i tid)"
     else:
-        message = "\n".join(lines)
+        message = f"Alla {i_tid_count} hittade tåg är i tid."
 
     send_pushover("Debug: hittade tåg", message)
 
