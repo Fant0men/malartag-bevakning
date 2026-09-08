@@ -53,13 +53,12 @@ h1::after {
 }
 
 h1::before {
-  background-image: url("assets/palm.gif"),
-     url("assets/snufkin.gif");
+  background-image: url("assets/palm.gif");
 
 }
 
 h1::after {
-   background-image: url("assets/money.gif"), url("assets/coffeemachine.gif");
+   background-image: url("assets/money.gif");
 }
 
 marquee, .marquee {
