@@ -13,11 +13,17 @@ body {
   padding: 0 1rem;
   background-color: #08D6B4;/*bakgrundsfärg*/
   background-image:
-    radial-gradient(#ffffff 1px, transparent 1px),
-    radial-gradient(#ffffff 1px, transparent 1px);
+    radial-gradient(#ffffff 2px, transparent 2px),
+    radial-gradient(#ffffff 2px, transparent 2px);
   background-size: 50px 50px;
   background-position: 0 0, 25px 25px;
   color: #00ffcc;
+   animation: snofall 12s linear infinite;
+}
+
+@keyframes snofall {
+   from { background-position: 0 0, 25px 25 px; }
+   to { background-position: 0 600px, 25px 625px;}
 }
 
 h1 {
