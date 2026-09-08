@@ -73,7 +73,7 @@ jobs:
           if [ "${{ steps.mode.outputs.mode }}" = "live" ]; then
             git add state.json
           else
-            git add docs/index.html
+            git add docs/
           fi
           git diff --staged --quiet || git commit -m "Uppdatera data"
           git push
