@@ -1,0 +1,79 @@
+# Lägg denna fil i ditt GitHub-repo som: .github/workflows/malartag_bevakning.yml
+#
+# Kräver tre "secrets" i repot under:
+# Settings -> Secrets and variables -> Actions -> New repository secret
+#   TRAFIKVERKET_API_KEY
+#   PUSHOVER_TOKEN
+#   PUSHOVER_USER
+
+name: Mälartåg-bevakning
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # löpande koll, var 15:e minut, dygnet runt
+    - cron: "0 21 * * *"     # daglig sammanfattning - se OBS nedan om tidszon
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: "Skicka debug-notis vid löpande koll"
+        required: false
+        default: false
+        type: boolean
+      mode:
+        description: "Kör-läge (lämna som 'live' för normal koll)"
+        required: false
+        default: "live"
+        type: choice
+        options:
+          - live
+          - daily_summary
+
+permissions:
+  contents: write
+
+jobs:
+  check-trains:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checka ut repo
+        uses: actions/checkout@v4
+
+      - name: Sätt upp Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installera beroenden
+        run: pip install requests
+
+      - name: Bestäm läge utifrån schema/manuell körning
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ inputs.mode || 'live' }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "0 21 * * *" ]; then
+            echo "mode=daily_summary" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=live" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Kör bevakningsskriptet
+        env:
+          TRAFIKVERKET_API_KEY: ${{ secrets.TRAFIKVERKET_API_KEY }}
+          PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
+          PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
+          DEBUG_NOTIFY: ${{ inputs.debug || 'false' }}
+          MODE: ${{ steps.mode.outputs.mode }}
+        run: python malartag_bevakning.py
+
+      - name: Spara state.json / docs vid behov
+        run: |
+          git config user.name "malartag-bot"
+          git config user.email "actions@github.com"
+          if [ "${{ steps.mode.outputs.mode }}" = "live" ]; then
+            git add state.json
+          else
+            git add docs/index.html
+          fi
+          git diff --staged --quiet || git commit -m "Uppdatera data"
+          git push
