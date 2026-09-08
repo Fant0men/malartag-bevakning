@@ -47,11 +47,11 @@ h1::after {
 }
 
 h1::before {
-  background-image: url("assets/left.gif");
+  background-image: url("assets/palm.gif");
 }
 
 h1::after {
-  background-image: url("assets/right.gif");
+  background-image: url("assets/gold.gif");
 }
 
 marquee, .marquee {
