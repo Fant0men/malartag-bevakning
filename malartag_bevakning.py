@@ -374,7 +374,7 @@ def build_html_report(rows: list[dict], report_date: str, css_href: str, nav_htm
 <link rel="stylesheet" href="{css_href}">
 </head>
 <body>
-  <h1>Mälartåg-bevakning</h1>
+  <h1>Mälartåg-mañana</h1>
   <p class="meta">Södertälje Syd ↔ Eskilstuna C &middot; Rapport för {report_date}</p>
   {nav_html}
   <table>
@@ -398,7 +398,7 @@ def build_archive_index(archive_dir: Path) -> str:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mälartåg-bevakning – historik</title>
+<title>Mälartåg-mañana – historik</title>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
