@@ -51,7 +51,7 @@ h1::before {
 }
 
 h1::after {
-  background-image: url("assets/gold.gif");
+  background-image: url("assets/Banana.gif");
 }
 
 marquee, .marquee {
@@ -73,8 +73,8 @@ table {
 }
 
 th {
-  background: #ff00ff;
-  color: #000000; /*färg på ram runt tabell */ 
+  background: #00FFCC;
+  color: #00FFCC; /*färg på ram runt tabell */ 
   padding: 0.4rem;
 }
 
