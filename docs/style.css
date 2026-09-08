@@ -1,0 +1,91 @@
+/* ============================================================
+   Mälartåg-bevakning - stilmall
+   Den här filen skrivs ALDRIG över automatiskt av skriptet.
+   Ändra fritt här för att byta utseende - t.ex. färger, typsnitt,
+   bakgrund. Ladda upp en ny version av just den här filen till
+   docs/style.css för att uppdatera sidan.
+   ============================================================ */
+
+body {
+  font-family: "Comic Sans MS", "Comic Sans", cursive, sans-serif;
+  max-width: 700px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  background-color: #000033;
+  background-image:
+    radial-gradient(#ffffff 1px, transparent 1px),
+    radial-gradient(#ffffff 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-position: 0 0, 25px 25px;
+  color: #00ffcc;
+}
+
+h1 {
+  font-size: 1.8rem;
+  text-align: center;
+  color: #ff00ff;
+  text-shadow: 2px 2px 0 #ffff00;
+  border: 4px dashed #ffff00;
+  padding: 0.5rem;
+  background: #000000;
+}
+
+marquee, .marquee {
+  display: block;
+  background: #000;
+  color: #00ff00;
+  font-weight: bold;
+  padding: 0.3rem 0;
+  border-top: 2px solid #ff00ff;
+  border-bottom: 2px solid #ff00ff;
+}
+
+.banner-gif {
+  display: block;
+  margin: 1rem auto;
+  max-width: 100%;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: #000000;
+  border: 3px outset #ff00ff;
+}
+
+th {
+  background: #ff00ff;
+  color: #000000;
+  padding: 0.4rem;
+}
+
+td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px dotted #00ffcc;
+}
+
+tr.delayed { color: #ffcc00; }
+tr.cancelled { color: #ff3333; font-weight: bold; }
+tr.ontime { color: #33ff33; }
+
+.meta { color: #cccccc; font-size: 0.9rem; text-align: center; }
+
+.nav-links {
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.nav-links a {
+  color: #00ffff;
+  margin: 0 0.6rem;
+  text-decoration: underline;
+}
+
+.blink {
+  animation: blinker 1s step-start infinite;
+}
+@keyframes blinker {
+  50% { opacity: 0; }
+}
