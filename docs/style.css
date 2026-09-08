@@ -96,7 +96,7 @@ tr.delayed { color: #ffcc00; }
 tr.cancelled { color: #ff3333; font-weight: bold; }
 tr.ontime { color: #33ff33; }
 
-.meta { color: #CE33FF; font-size: 0.9rem; text-align: center; } /*färg på text misc, station etc*/ 
+.meta { color: #d91111; font-size: 0.9rem; text-align: center; } /*färg på text misc, station etc*/ 
 
 .nav-links {
   text-align: center;
