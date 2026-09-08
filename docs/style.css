@@ -23,8 +23,8 @@ body {
 }
 
 @keyframes snofall {
-   from { background-position: 0 0, 25px 25 px; }
-   to { background-position: 0 600px, 25px 625px;}
+   from { background-position: 0 0, 15px 15 px; }
+   to { background-position: 0 600px, 15px 625px;}
 }
 
 h1 {
