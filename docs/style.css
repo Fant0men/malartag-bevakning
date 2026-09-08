@@ -11,7 +11,7 @@ body {
   max-width: 700px;
   margin: 2rem auto;
   padding: 0 1rem;
-  background-color: #000033;
+  background-color: #08D6B4;/*bakgrundsfärg*/
   background-image:
     radial-gradient(#ffffff 1px, transparent 1px),
     radial-gradient(#ffffff 1px, transparent 1px);
@@ -27,7 +27,7 @@ h1 {
   gap: 1rem;
   font-size: 1.8rem;
   text-align: center;
-  color: #ff00ff;
+  color: #ECFFE5; /*textfärg*/
   text-shadow: 2px 2px 0 #ffff00;
   border: 4px dashed #ffff00;
   padding: 0.5rem;
