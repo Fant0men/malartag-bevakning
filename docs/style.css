@@ -12,9 +12,9 @@ body {
   margin: 2rem auto;
   padding: 0 1rem;
   background-color: #08D6B4;/*bakgrundsfärg*/
-  background-image:
-    radial-gradient(#ffffff 2px, transparent 2px),
-    radial-gradient(#ffffff 2px, transparent 2px);
+  background-image: url(assets/snoww.gif)
+   /* radial-gradient(#ffffff 2px, transparent 2px),
+    radial-gradient(#ffffff 2px, transparent 2px);*/
   background-size: 50px 50px;
   background-position: 0 0, 25px 25px;
   color: #00ffcc;
