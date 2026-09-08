@@ -60,8 +60,8 @@ marquee, .marquee {
   color: #00ff00; /*textfärg för tåg i tid*/ 
   font-weight: bold;
   padding: 0.3rem 0;
-  border-top: 2px solid #ff00ff;
-  border-bottom: 2px solid #ff00ff;
+  border-top: 2px solid #EFFFFF;
+  border-bottom: 2px solid #EFFFFF;
 }
 
 table {
@@ -73,8 +73,8 @@ table {
 }
 
 th {
-  background: #00FFCC;
-  color: #00FFCC; /*färg på ram runt tabell */ 
+  background: #EFFFFF; /*färg på ram för tabell */
+  color: #00C0C0; /*färg på huvud för  tabell */ 
   padding: 0.4rem;
 }
 
@@ -88,7 +88,7 @@ tr.delayed { color: #ffcc00; }
 tr.cancelled { color: #ff3333; font-weight: bold; }
 tr.ontime { color: #33ff33; }
 
-.meta { color: #cccccc; font-size: 0.9rem; text-align: center; }
+.meta { color: #E357C8; font-size: 0.9rem; text-align: center; } /*färg på text misc, station etc*/ 
 
 .nav-links {
   text-align: center;
