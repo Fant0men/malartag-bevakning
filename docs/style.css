@@ -21,6 +21,10 @@ body {
 }
 
 h1 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
   font-size: 1.8rem;
   text-align: center;
   color: #ff00ff;
@@ -28,6 +32,26 @@ h1 {
   border: 4px dashed #ffff00;
   padding: 0.5rem;
   background: #000000;
+}
+
+h1::before,
+h1::after {
+  content: "";
+  display: inline-block;
+  width: 60px;
+  height: 60px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+h1::before {
+  background-image: url("assets/left.gif");
+}
+
+h1::after {
+  background-image: url("assets/right.gif");
 }
 
 marquee, .marquee {
