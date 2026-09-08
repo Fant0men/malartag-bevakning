@@ -417,7 +417,7 @@ def build_html_report(
 <link rel="stylesheet" href="{css_href}">
 </head>
 <body>
-  <h1>Mälartåg-bevakning</h1>
+  <h1>Mälartåg-mañana</h1>
   <p class="meta">Södertälje Syd ↔ Eskilstuna C &middot; Rapport för {report_date}</p>
   {nav_html}
   <table>
