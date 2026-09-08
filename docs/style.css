@@ -28,8 +28,8 @@ h1 {
   font-size: 1.8rem;
   text-align: center;
   color: #ECFFE5; /*textfärg*/
-  text-shadow: 2px 2px 0 #ffff00;
-  border: 4px dashed #ffff00;
+  text-shadow: 2px 2px 0 #073CB1; /*skugga för text*/ 
+  border: 4px dashed #FFFFD5; /*dottad ram*/ 
   padding: 0.5rem;
   background: #000000;
 }
