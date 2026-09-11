@@ -173,8 +173,8 @@ table:last-of-type::after {
   overflow: hidden;
   width: 100%;
   background: #000000;
-  border-top: 2px solid #ff9900;
-  border-bottom: 2px solid #ff9900;
+  border-top: 2px solid #33ff33;
+  border-bottom: 2px solid #33ff33;
   padding: 0.5rem 0;
   margin-top: 1rem;
 }
@@ -186,8 +186,8 @@ table:last-of-type::after {
   font-family: "Courier New", monospace;
   font-size: 1.1rem;
   letter-spacing: 1px;
-  color: #ff9900;
-  text-shadow: 0 0 6px #ff9900;
+  color: #33ff33;
+  text-shadow: 0 0 6px #33ff33;
   animation: ticker-scroll 18s linear infinite;
 }
 
