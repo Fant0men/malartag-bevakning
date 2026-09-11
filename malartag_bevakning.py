@@ -22,6 +22,7 @@ Notiser: Pushover (https://pushover.net)
 import html
 import json
 import os
+import re
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -222,6 +223,31 @@ def get_daily_quote() -> str:
     return "Vad är det för deal med tåg som alltid är sena?"
 
 
+def update_ticker_quote() -> None:
+    """
+    Byter ut BARA citat-texten i redan publicerade sidor (dagens index.html
+    och, om den finns, dagens arkiverade kopia) - utan att röra resten av
+    rapporten. Används av run_live() så tickern känns levande även mellan
+    de dagliga sammanställningarna.
+    """
+    quote_text = get_daily_quote()
+    escaped = html.escape(quote_text)
+    pattern = re.compile(r'(<div class="ticker-text">).*?(</div>)', re.DOTALL)
+
+    docs_dir = Path(__file__).parent / "docs"
+    today = datetime.now(SWEDEN_TZ).strftime("%Y-%m-%d")
+    paths = [docs_dir / "index.html", docs_dir / "archive" / f"{today}.html"]
+
+    for path in paths:
+        if not path.exists():
+            continue
+        content = path.read_text(encoding="utf-8")
+        new_content = pattern.sub(rf"\1{escaped}\2", content, count=1)
+        if new_content != content:
+            path.write_text(new_content, encoding="utf-8")
+            print(f"DEBUG: uppdaterade citat i {path}")
+
+
 # --------------------------------------------------------------------------
 # LÄGE 1: LÖPANDE BEVAKNING
 # --------------------------------------------------------------------------
@@ -284,6 +310,7 @@ def run_live(sig_a: str, sig_b: str) -> None:
             state[key] = delay
 
     save_state(state)
+    update_ticker_quote()
 
 
 # --------------------------------------------------------------------------
