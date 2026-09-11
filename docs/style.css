@@ -167,3 +167,47 @@ table:last-of-type::after {
 @keyframes blinker {
   50% { opacity: 0; }
 }
+
+/* Digital skärm-ticker, likt de på tågstationer - text glider höger till vänster */
+.ticker-wrap {
+  overflow: hidden;
+  width: 100%;
+  background: #000000;
+  border-top: 2px solid #ff9900;
+  border-bottom: 2px solid #ff9900;
+  padding: 0.5rem 0;
+  margin-top: 1rem;
+}
+
+.ticker-text {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+  font-family: "Courier New", monospace;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  color: #ff9900;
+  text-shadow: 0 0 6px #ff9900;
+  animation: ticker-scroll 18s linear infinite;
+}
+
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+
+/* Förseningsbanner - dold som standard, visas bara om show-klassen finns */
+.delay-banner {
+  display: none;
+}
+
+.delay-banner.show {
+  display: block;
+  width: 100%;
+  height: 80px;
+  margin-top: 1rem;
+  background-image: url("assets/delay-alert.gif");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
