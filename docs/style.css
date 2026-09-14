@@ -188,7 +188,7 @@ table:last-of-type::after {
   letter-spacing: 1px;
   color: #33ff33;
   text-shadow: 0 0 6px #33ff33;
-  animation: ticker-scroll 45s linear infinite;
+  animation: ticker-scroll 23s linear infinite;
 }
 
 @keyframes ticker-scroll {
