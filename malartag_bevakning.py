@@ -651,7 +651,8 @@ def build_compensation_html(short_n: int, long_n: int) -> str:
     <div class="kr-title">Mälardebt</div>
     <div class="kr-amount">{total_str} kr</div>
     <div class="kr-detail">Förrädare mot kronan!?</div>
-  </div>"""
+  </div>
+  <div class="welcome-banner"></div>"""
 
 
 def run_daily_summary(sig_a: str, sig_b: str) -> None:
