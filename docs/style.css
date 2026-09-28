@@ -109,7 +109,7 @@ tr.ontime { color: #33ff33; }
   text-decoration: underline;
 }
 
-.nav-links::before {
+.kr-box::after {
   content: "";
   display: block;
   width: 100%;
