@@ -211,3 +211,29 @@ table:last-of-type::after {
   background-position: center;
   background-size: contain;
 }
+
+/* Ersättningsruta */
+.kr-box {
+  text-align: center;
+  background: #000000;
+  border: 3px outset #3CC490;
+  padding: 0.6rem;
+  margin-top: 1rem;
+}
+
+.kr-title {
+  color: #EFFFFF;
+  font-size: 0.9rem;
+}
+
+.kr-amount {
+  color: #ffcc00;
+  font-size: 2rem;
+  font-weight: bold;
+  text-shadow: 0 0 6px #ffcc00;
+}
+
+.kr-detail {
+  color: #cccccc;
+  font-size: 0.8rem;
+}
