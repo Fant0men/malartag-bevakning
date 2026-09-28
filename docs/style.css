@@ -109,8 +109,7 @@ tr.ontime { color: #33ff33; }
   text-decoration: underline;
 }
 
-.kr-detail::after {
-  content: "";
+.welcome-banner {
   display: block;
   width: 100%;
   height: 80px;
