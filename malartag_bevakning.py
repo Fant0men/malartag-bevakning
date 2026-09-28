@@ -648,10 +648,9 @@ def build_compensation_html(short_n: int, long_n: int) -> str:
     total_kr = short_n * SHORT_COMP_KR + long_n * LONG_COMP_KR
     total_str = f"{total_kr:,}".replace(",", " ")
     return f"""<div class="kr-box">
-    <div class="kr-title">Ersättning för förseningar hittills</div>
+    <div class="kr-title">Mälardebt</div>
     <div class="kr-amount">{total_str} kr</div>
-    <div class="kr-detail">{short_n} &times; {SHORT_COMP_KR} kr (kortdistans, minst {SHORT_COMP_THRESHOLD_MIN} min eller inställt)
-      + {long_n} &times; {LONG_COMP_KR} kr (långdistans, minst {LONG_COMP_THRESHOLD_MIN} min eller inställt)</div>
+    <div class="kr-detail">Förrädare mot kronan!?</div>
   </div>"""
 
 
