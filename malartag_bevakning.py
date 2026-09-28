@@ -65,6 +65,13 @@ LONG_DISTANCE_TRAIN_NUMBERS = [
 
 LONG_DISTANCE_DELAY_THRESHOLD_MIN = 60
 
+# Ersättning per försening. Ligger separat från notiströsklarna ovan - en
+# försening på 16-19 min på kortdistans ger notis men ingen ersättning.
+SHORT_COMP_THRESHOLD_MIN = 20
+SHORT_COMP_KR = 19
+LONG_COMP_THRESHOLD_MIN = 60
+LONG_COMP_KR = 37
+
 STATE_FILE = Path(__file__).parent / "state.json"
 TRAFIKVERKET_URL = "https://api.trafikinfo.trafikverket.se/v2/data.json"
 SWEDEN_TZ = ZoneInfo("Europe/Stockholm")
@@ -444,6 +451,7 @@ def build_html_report(
     extra_sections: list[tuple[str, list[dict]]] | None = None,
     quote_text: str = "",
     show_delay_banner: bool = False,
+    compensation_html: str = "",
 ) -> str:
     """
     Bygger en HTML-sida med ett datums fullständiga resultat. extra_sections
@@ -477,6 +485,7 @@ def build_html_report(
   </div>
   <div class="{delay_banner_class}"></div>
   <p class="meta">Södertälje Syd ↔ Eskilstuna C &middot; Rapport för {report_date}</p>
+  {compensation_html}
   {nav_html}
   <table>
     <tr><th>Tåg</th><th>Station</th><th>Tid</th><th>Status</th></tr>
@@ -566,6 +575,86 @@ def rows_to_pushover_lines(rows: list[dict]) -> tuple[list[str], int]:
     return avvikande, ok_count
 
 
+# Matchar exakt de rader render_table_rows() skriver ut.
+ARCHIVE_ROW_RE = re.compile(
+    r"<tr class='(?P<cls>[a-z]+)'>"
+    r"<td>(?P<train>[^<]*)</td><td>[^<]*</td>"
+    r"<td>(?P<time>[^<]*)</td><td>(?P<status>[^<]*)</td></tr>"
+)
+ARCHIVE_DELAY_RE = re.compile(r"(\d+)\s*min sen")
+
+
+def rows_from_archive_html(page: str) -> list[dict]:
+    """Läser tillbaka tågrader ur en arkiverad dagssida."""
+    rows = []
+    for m in ARCHIVE_ROW_RE.finditer(page):
+        delay_match = ARCHIVE_DELAY_RE.search(m.group("status"))
+        rows.append(
+            {
+                "train_id": m.group("train").strip(),
+                "planned_time": m.group("time").strip(),
+                "delay": int(delay_match.group(1)) if delay_match else 0,
+                "cancelled": m.group("cls") == "cancelled",
+            }
+        )
+    return rows
+
+
+def count_compensated_delays(rows: list[dict]) -> tuple[int, int]:
+    """
+    Returnerar (antal kortdistans-, antal långdistansförseningar) som ger
+    ersättning. Tåget klassas efter vilken lista numret ligger i, inte efter
+    vilken tabell raden stod i - så även gamla sidor (före tabellsplitten)
+    räknas rätt. Ett tåg som står med flera rader samma dag (en per station)
+    räknas bara en gång, med den kronologiskt sista - samma regel som i
+    tabellen. Inställda tåg saknar minutsiffra och räknas alltid, med
+    ersättningen för sin kategori.
+    """
+    latest: dict[str, dict] = {}
+    for r in rows:
+        tid = str(r["train_id"])
+        if tid not in latest or r["planned_time"] > latest[tid]["planned_time"]:
+            latest[tid] = r
+
+    short_n = long_n = 0
+    for tid, r in latest.items():
+        if tid in LONG_DISTANCE_TRAIN_NUMBERS:
+            if r["cancelled"] or r["delay"] >= LONG_COMP_THRESHOLD_MIN:
+                long_n += 1
+        elif tid in TRAIN_NUMBERS:
+            if r["cancelled"] or r["delay"] >= SHORT_COMP_THRESHOLD_MIN:
+                short_n += 1
+    return short_n, long_n
+
+
+def compensation_from_archive(archive_dir: Path, exclude_date: str) -> tuple[int, int]:
+    """
+    Summerar ersättningsgrundande förseningar över alla arkiverade dagar,
+    utom exclude_date (dagens siffror kommer direkt från minnet istället,
+    så en tidigare körning samma dag inte räknas dubbelt).
+    """
+    short_total = long_total = 0
+    for path in sorted(archive_dir.glob("*.html")):
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", path.stem) or path.stem == exclude_date:
+            continue
+        s, l = count_compensated_delays(rows_from_archive_html(path.read_text(encoding="utf-8")))
+        short_total += s
+        long_total += l
+    return short_total, long_total
+
+
+def build_compensation_html(short_n: int, long_n: int) -> str:
+    """Textrutan med den samlade ersättningen."""
+    total_kr = short_n * SHORT_COMP_KR + long_n * LONG_COMP_KR
+    total_str = f"{total_kr:,}".replace(",", " ")
+    return f"""<div class="kr-box">
+    <div class="kr-title">Ersättning för förseningar hittills</div>
+    <div class="kr-amount">{total_str} kr</div>
+    <div class="kr-detail">{short_n} &times; {SHORT_COMP_KR} kr (kortdistans, minst {SHORT_COMP_THRESHOLD_MIN} min eller inställt)
+      + {long_n} &times; {LONG_COMP_KR} kr (långdistans, minst {LONG_COMP_THRESHOLD_MIN} min eller inställt)</div>
+  </div>"""
+
+
 def run_daily_summary(sig_a: str, sig_b: str) -> None:
     now = datetime.now(SWEDEN_TZ)
     day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -596,6 +685,18 @@ def run_daily_summary(sig_a: str, sig_b: str) -> None:
 
     ensure_default_stylesheet(docs_dir)
 
+    # Ersättning: tidigare dagar läses ur arkivet, dagens kommer direkt från
+    # minnet (så en tidigare körning samma dag inte räknas dubbelt).
+    past_short, past_long = compensation_from_archive(archive_dir, exclude_date=report_date)
+    today_short, today_long = count_compensated_delays(rows + long_rows)
+    comp_short, comp_long = past_short + today_short, past_long + today_long
+    print(
+        f"DEBUG: ersättning - historik {past_short} kort + {past_long} lång, "
+        f"idag {today_short} kort + {today_long} lång, totalt "
+        f"{comp_short * SHORT_COMP_KR + comp_long * LONG_COMP_KR} kr"
+    )
+    compensation_html = build_compensation_html(comp_short, comp_long)
+
     today_nav = '<p class="nav-links"><a href="archive/index.html">Se historik</a></p>'
     archive_nav = (
         '<p class="nav-links"><a href="../index.html">&larr; Tillbaka till idag</a> '
@@ -608,6 +709,7 @@ def run_daily_summary(sig_a: str, sig_b: str) -> None:
             rows, report_date, css_href="style.css", nav_html=today_nav,
             extra_sections=extra_sections, quote_text=quote_text,
             show_delay_banner=show_delay_banner,
+            compensation_html=compensation_html,
         ),
         encoding="utf-8",
     )
