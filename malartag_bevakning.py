@@ -55,12 +55,12 @@ DELAY_THRESHOLD_MIN = 16
 
 # Tåg som går längre än 150 km - hanteras separat med en högre tröskel
 # (60 min) eftersom mindre förseningar är vanligare och mindre relevanta
-# på längre sträckor.
+# på längre sträckor. , "989", "983""977",
 LONG_DISTANCE_TRAIN_NUMBERS = [
     "906", "910", "914", "918", "924", "928", "932", "936", "940", "946",
     "950", "20954", "964", "970", "976", "982", "988", "907", "911", "915",
     "919", "929", "933", "937", "941", "947", "951", "955", "959", "965",
-    "971", "977", "983", "989","20958"
+    "971", "20958"
 ]
 
 LONG_DISTANCE_DELAY_THRESHOLD_MIN = 60
