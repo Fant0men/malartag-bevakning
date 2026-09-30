@@ -241,12 +241,12 @@ table:last-of-type::after {
   text-align: center;
   background: #000000;
   border: 3px outset #3CC490;
-  padding: 0.6rem;
-  margin-top: 1rem;
+  padding: 0.3rem;
+  margin-top: 0.3rem;
 }
 
 .meta-updated {
   color: #999999;
-  font-size: 0.8rem;
+  font-size: 0.4rem;
   margin-top: 0.3rem;
 }
