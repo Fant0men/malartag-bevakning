@@ -51,19 +51,19 @@ TRAIN_NUMBERS = [
     "10903", "10905", "10907", "10921", "10923", "10925"
 ]
 
-DELAY_THRESHOLD_MIN = 19
+DELAY_THRESHOLD_MIN = 16
 
 # Tåg som går längre än 150 km - hanteras separat med en högre tröskel
 # (60 min) eftersom mindre förseningar är vanligare och mindre relevanta
-# på längre sträckor. , "989", "983""977",
+# på längre sträckor.
 LONG_DISTANCE_TRAIN_NUMBERS = [
     "906", "910", "914", "918", "924", "928", "932", "936", "940", "946",
     "950", "20954", "964", "970", "976", "982", "988", "907", "911", "915",
     "919", "929", "933", "937", "941", "947", "951", "955", "959", "965",
-    "971", "20958"
+    "971", "977", "983", "989","20958"
 ]
 
-LONG_DISTANCE_DELAY_THRESHOLD_MIN = 59
+LONG_DISTANCE_DELAY_THRESHOLD_MIN = 60
 
 # Ersättning per försening. Ligger separat från notiströsklarna ovan - en
 # försening på 16-19 min på kortdistans ger notis men ingen ersättning.
@@ -230,16 +230,20 @@ def get_daily_quote() -> str:
     return "Vad är det för deal med tåg som alltid är sena?"
 
 
-def update_ticker_quote() -> None:
+def update_live_elements() -> None:
     """
-    Byter ut BARA citat-texten i redan publicerade sidor (dagens index.html
-    och, om den finns, dagens arkiverade kopia) - utan att röra resten av
-    rapporten. Används av run_live() så tickern känns levande även mellan
-    de dagliga sammanställningarna.
+    Byter ut BARA citat-texten och "senast uppdaterad"-tiden i redan
+    publicerade sidor (dagens index.html och, om den finns, dagens
+    arkiverade kopia) - utan att röra resten av rapporten. Används av
+    run_live() så sidan känns levande även mellan de dagliga
+    sammanställningarna.
     """
     quote_text = get_daily_quote()
-    escaped = html.escape(quote_text)
-    pattern = re.compile(r'(<div class="ticker-text">).*?(</div>)', re.DOTALL)
+    escaped_quote = html.escape(quote_text)
+    updated_time = datetime.now(SWEDEN_TZ).strftime("%H:%M")
+
+    quote_pattern = re.compile(r'(<div class="ticker-text">).*?(</div>)', re.DOTALL)
+    time_pattern = re.compile(r'(<span class="last-updated">).*?(</span>)', re.DOTALL)
 
     docs_dir = Path(__file__).parent / "docs"
     today = datetime.now(SWEDEN_TZ).strftime("%Y-%m-%d")
@@ -249,10 +253,11 @@ def update_ticker_quote() -> None:
         if not path.exists():
             continue
         content = path.read_text(encoding="utf-8")
-        new_content = pattern.sub(rf"\1{escaped}\2", content, count=1)
+        new_content = quote_pattern.sub(rf"\1{escaped_quote}\2", content, count=1)
+        new_content = time_pattern.sub(rf"\g<1>{updated_time}\g<2>", new_content, count=1)
         if new_content != content:
             path.write_text(new_content, encoding="utf-8")
-            print(f"DEBUG: uppdaterade citat i {path}")
+            print(f"DEBUG: uppdaterade citat/tidsstämpel i {path}")
 
 
 # --------------------------------------------------------------------------
@@ -317,7 +322,7 @@ def run_live(sig_a: str, sig_b: str) -> None:
             state[key] = delay
 
     save_state(state)
-    update_ticker_quote()
+    update_live_elements()
 
 
 # --------------------------------------------------------------------------
@@ -452,6 +457,7 @@ def build_html_report(
     quote_text: str = "",
     show_delay_banner: bool = False,
     compensation_html: str = "",
+    updated_time: str = "",
 ) -> str:
     """
     Bygger en HTML-sida med ett datums fullständiga resultat. extra_sections
@@ -484,7 +490,10 @@ def build_html_report(
     <div class="ticker-text">{html.escape(quote_text)}</div>
   </div>
   <div class="{delay_banner_class}"></div>
-  <p class="meta">Södertälje Syd ↔ Eskilstuna C &middot; Rapport för {report_date}</p>
+  <div class="meta-box">
+    <p class="meta">Södertälje Syd ↔ Eskilstuna C &middot; Rapport för {report_date}</p>
+    <p class="meta-updated">Senast uppdaterad: <span class="last-updated">{updated_time}</span></p>
+  </div>
   {compensation_html}
   {nav_html}
   <table>
@@ -660,6 +669,7 @@ def run_daily_summary(sig_a: str, sig_b: str) -> None:
     day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     day_end = day_start + timedelta(days=1)
     report_date = now.strftime("%Y-%m-%d")
+    updated_time = now.strftime("%H:%M")
 
     rows = collect_rows(sig_a, sig_b, TRAIN_NUMBERS, day_start, day_end)
     long_rows = collect_rows(sig_a, sig_b, LONG_DISTANCE_TRAIN_NUMBERS, day_start, day_end)
@@ -710,6 +720,7 @@ def run_daily_summary(sig_a: str, sig_b: str) -> None:
             extra_sections=extra_sections, quote_text=quote_text,
             show_delay_banner=show_delay_banner,
             compensation_html=compensation_html,
+            updated_time=updated_time,
         ),
         encoding="utf-8",
     )
@@ -720,6 +731,7 @@ def run_daily_summary(sig_a: str, sig_b: str) -> None:
             rows, report_date, css_href="../style.css", nav_html=archive_nav,
             extra_sections=extra_sections, quote_text=quote_text,
             show_delay_banner=show_delay_banner,
+            updated_time=updated_time,
         ),
         encoding="utf-8",
     )
