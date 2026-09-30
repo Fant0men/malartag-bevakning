@@ -250,3 +250,11 @@ table:last-of-type::after {
   font-size: 0.4rem;
   margin-top: 0.3rem;
 }
+
+body.route-stockholm h1::before { background-image: url("assets-stockholm/palm.gif"); }
+body.route-stockholm h1::after  { background-image: url("assets-stockholm/money.gif"); }
+body.route-stockholm .welcome-banner { background-image: url("assets-stockholm/welcome.gif"); }
+body.route-stockholm h2::before { background-image: url("assets-stockholm/longdistance.gif"); }
+body.route-stockholm h2::after  { background-image: url("assets-stockholm/fishy.gif"); }
+body.route-stockholm table:last-of-type::after { background-image: url("assets-stockholm/footer.gif"); }
+body.route-stockholm .delay-banner.show { background-image: url("assets-stockholm/delay-alert.gif"); }
