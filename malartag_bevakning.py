@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 """
-Bevakar specifika Mälartåg-nummer mellan Södertälje Syd och Eskilstuna C
-via Trafikverkets officiella öppna API (api.trafikinfo.trafikverket.se) -
-samma datakälla som ligger bakom trafikverket.se/trafikinformation/tag.
+Bevakar Mälartåg-nummer på flera linjer (rutter) via Trafikverkets
+officiella öppna API (api.trafikinfo.trafikverket.se) - samma datakälla
+som ligger bakom trafikverket.se/trafikinformation/tag.
 
-Fördelen mot att gissa linjer/riktningar via ResRobot: du anger exakt
-vilka tågnummer som är dina vanliga resor, och vi frågar Trafikverket
-rakt av om just de tågen. Ingen gissning om vilken linje ett tåg tillhör.
+Varje rutt i ROUTES nedan är helt oberoende: egna stationer, egna
+tågnummerlistor, egen sida (docs/... resp. docs/stockholm/...), egen
+arkiverad historik och egen "Mälardebt"-ruta. De delar bara kod, inte
+data.
 
 Två lägen, styrda av miljövariabeln MODE:
-- MODE=live (standard): kollar aktuell status för alla listade tåg och
-  skickar Pushover-notis direkt vid försening/inställt. Körs lämpligen
-  var 10-15:e minut.
-- MODE=daily_summary: sammanställer HELA dagens faktiska utfall (redan
-  inträffade ankomster) för alla listade tåg och skickar en samlad
-  rapport. Körs lämpligen en gång per dag, kvällstid.
+- MODE=live (standard): kollar aktuell status för alla listade tåg på
+  ALLA rutter och skickar Pushover-notis direkt vid försening/inställt.
+  Körs lämpligen var 10-15:e minut.
+- MODE=daily_summary: sammanställer HELA dagens faktiska utfall för
+  ALLA rutter och skickar en samlad rapport. Körs lämpligen en gång
+  per dag, kvällstid.
 
 Notiser: Pushover (https://pushover.net)
 """
@@ -39,38 +40,88 @@ TRAFIKVERKET_API_KEY = os.environ.get("TRAFIKVERKET_API_KEY", "DIN_TRAFIKVERKET_
 PUSHOVER_TOKEN = os.environ.get("PUSHOVER_TOKEN", "DIN_PUSHOVER_APP_TOKEN")
 PUSHOVER_USER = os.environ.get("PUSHOVER_USER", "DIN_PUSHOVER_USER_KEY")
 
-STATION_A = "Södertälje Syd"
-STATION_B = "Eskilstuna C"
-
 # uppsala tåg "906", "910", "914","918","924","928","932","936","940","946","950","20954","964",
 # "970","976","982","988","907","911","915","919","929","933","937","941","947","951","955","959",
 # "965","971","977","983","989",
-# De tågnummer du faktiskt bryr dig om.
-TRAIN_NUMBERS = [
+# De tågnummer du faktiskt bryr dig om - linjen Södertälje Syd <-> Eskilstuna C.
+TRAIN_NUMBERS_ESKILSTUNA = [
     "10900", "10902", "10904", "10906", "10922", "10901",
     "10903", "10905", "10907", "10921", "10923", "10925"
 ]
 
-DELAY_THRESHOLD_MIN = 16
-
-# Tåg som går längre än 150 km - hanteras separat med en högre tröskel
-# (60 min) eftersom mindre förseningar är vanligare och mindre relevanta
-# på längre sträckor. "977", "983", "989",
-LONG_DISTANCE_TRAIN_NUMBERS = [
+# Tåg som går längre än 150 km på Eskilstuna-linjen - hanteras separat
+# med en högre tröskel (60 min)., "977", "983", "989"
+LONG_DISTANCE_TRAIN_NUMBERS_ESKILSTUNA = [
     "906", "910", "914", "918", "924", "928", "932", "936", "940", "946",
     "950", "20954", "964", "970", "976", "982", "988", "907", "911", "915",
     "919", "929", "933", "937", "941", "947", "951", "955", "959", "965",
     "971", "20958"
 ]
 
+# ============================================================================
+# FYLL I DINA EGNA TÅGNUMMER HÄR för linjen Södertälje Syd <-> Stockholm C.
+# Samma princip som ovan: TRAIN_NUMBERS_STOCKHOLM för kortdistans (nuvarande
+# tröskel DELAY_THRESHOLD_MIN), LONG_DISTANCE_TRAIN_NUMBERS_STOCKHOLM för tåg
+# över 150 km (tröskel LONG_DISTANCE_DELAY_THRESHOLD_MIN). Tomma listor
+# betyder att den sidan byggs men aldrig hittar några tåg än.
+# ============================================================================
+TRAIN_NUMBERS_STOCKHOLM: list[str] = [
+    "10900", "10902", "10904", "10906", "10922", "10901",
+    "10903", "10905", "10907", "10921", "10923", "10925"
+]
+
+LONG_DISTANCE_TRAIN_NUMBERS_STOCKHOLM: list[str] = [
+    "906", "910", "914", "918", "924", "928", "932", "936", "940", "946",
+    "950", "20954", "964", "970", "976", "982", "988", "907", "911", "915",
+    "919", "929", "933", "937", "941", "947", "951", "955", "959", "965",
+    "971", "20958"
+]
+
+DELAY_THRESHOLD_MIN = 16
 LONG_DISTANCE_DELAY_THRESHOLD_MIN = 60
 
 # Ersättning per försening. Ligger separat från notiströsklarna ovan - en
 # försening på 16-19 min på kortdistans ger notis men ingen ersättning.
+# Gäller lika för båda rutterna.
 SHORT_COMP_THRESHOLD_MIN = 20
 SHORT_COMP_KR = 19
 LONG_COMP_THRESHOLD_MIN = 60
 LONG_COMP_KR = 37
+
+# ----------------------------------------------------------------------------
+# RUTTER - lägg till fler här i framtiden genom att lägga till ett till
+# dict i listan. "docs_subdir" styr var på hemsidan sidan hamnar, "css_class"
+# är kroken din style.css kan använda för att ge rutten egen grafik (se
+# instruktionerna du fått separat för body.route-xxx-selektorer).
+# ----------------------------------------------------------------------------
+ROUTES = [
+    {
+        "id": "eskilstuna",
+        "station_a": "Södertälje Syd",
+        "station_b": "Eskilstuna C",
+        "train_numbers": TRAIN_NUMBERS_ESKILSTUNA,
+        "long_numbers": LONG_DISTANCE_TRAIN_NUMBERS_ESKILSTUNA,
+        "docs_subdir": "docs",
+        "css_class": "route-eskilstuna",
+        "other_route_href": "stockholm/index.html",
+        "other_route_href_from_archive": "../stockholm/index.html",
+        "other_route_label": "Stockholmssidan",
+        "notify": True,
+    },
+    {
+        "id": "stockholm",
+        "station_a": "Södertälje Syd",
+        "station_b": "Stockholm C",
+        "train_numbers": TRAIN_NUMBERS_STOCKHOLM,
+        "long_numbers": LONG_DISTANCE_TRAIN_NUMBERS_STOCKHOLM,
+        "docs_subdir": "docs/stockholm",
+        "css_class": "route-stockholm",
+        "other_route_href": "../index.html",
+        "other_route_href_from_archive": "../../index.html",
+        "other_route_label": "Huvudsidan (Eskilstuna)",
+        "notify": False,
+    },
+]
 
 STATE_FILE = Path(__file__).parent / "state.json"
 TRAFIKVERKET_URL = "https://api.trafikinfo.trafikverket.se/v2/data.json"
@@ -117,7 +168,6 @@ def find_location_signature(station_name: str) -> str:
         )
 
     print(f"DEBUG: sökning på '{station_name}' gav: {results}")
-    # Ta den första träffen - vid flera träffar, välj den vars namn matchar exakt.
     for r in results:
         if r.get("AdvertisedLocationName", "").lower() == station_name.lower():
             return r["LocationSignature"]
@@ -132,8 +182,12 @@ def fetch_announcements(
 ) -> list[dict]:
     """
     Hämtar tågannonser (ankomster) för en lista tågnummer vid en specifik
-    station, inom ett tidsintervall.
+    station, inom ett tidsintervall. Tom lista tågnummer -> tomt resultat,
+    utan att ens fråga API:et (annars blir OR-filtret ogiltigt).
     """
+    if not train_numbers:
+        return []
+
     train_filter = "".join(
         f'<EQ name="AdvertisedTrainIdent" value="{num}"/>' for num in train_numbers
     )
@@ -212,10 +266,10 @@ def send_pushover(title: str, message: str) -> None:
 
 def get_daily_quote() -> str:
     """
-    Hämtar ett slumpat Seinfeld-citat till dagens ticker. Om API:et av
-    någon anledning inte svarar, används en egen (icke-upphovsrättsskyddad)
-    reservtext istället för att låta hela rapporten krascha på grund av
-    en extern tjänst som inte är kritisk för huvudsyftet.
+    Hämtar ett slumpat Seinfeld-citat. Om API:et av någon anledning inte
+    svarar, används en egen (icke-upphovsrättsskyddad) reservtext istället
+    för att låta hela rapporten krascha på grund av en extern tjänst som
+    inte är kritisk för huvudsyftet.
     """
     try:
         resp = requests.get(SEINFELD_QUOTE_API, timeout=10)
@@ -230,12 +284,12 @@ def get_daily_quote() -> str:
     return "Vad är det för deal med tåg som alltid är sena?"
 
 
-def update_live_elements() -> None:
+def update_live_elements(route: dict) -> None:
     """
     Byter ut BARA citat-texten och "senast uppdaterad"-tiden i redan
-    publicerade sidor (dagens index.html och, om den finns, dagens
-    arkiverade kopia) - utan att röra resten av rapporten. Används av
-    run_live() så sidan känns levande även mellan de dagliga
+    publicerade sidor för en rutt (dagens index.html och, om den finns,
+    dagens arkiverade kopia) - utan att röra resten av rapporten. Används
+    av run_live() så sidan känns levande även mellan de dagliga
     sammanställningarna.
     """
     quote_text = get_daily_quote()
@@ -245,7 +299,7 @@ def update_live_elements() -> None:
     quote_pattern = re.compile(r'(<div class="ticker-text">).*?(</div>)', re.DOTALL)
     time_pattern = re.compile(r'(<span class="last-updated">).*?(</span>)', re.DOTALL)
 
-    docs_dir = Path(__file__).parent / "docs"
+    docs_dir = Path(__file__).parent / route["docs_subdir"]
     today = datetime.now(SWEDEN_TZ).strftime("%Y-%m-%d")
     paths = [docs_dir / "index.html", docs_dir / "archive" / f"{today}.html"]
 
@@ -257,33 +311,37 @@ def update_live_elements() -> None:
         new_content = time_pattern.sub(rf"\g<1>{updated_time}\g<2>", new_content, count=1)
         if new_content != content:
             path.write_text(new_content, encoding="utf-8")
-            print(f"DEBUG: uppdaterade citat/tidsstämpel i {path}")
+            print(f"DEBUG: [{route['id']}] uppdaterade citat/tidsstämpel i {path}")
 
 
 # --------------------------------------------------------------------------
 # LÄGE 1: LÖPANDE BEVAKNING
 # --------------------------------------------------------------------------
-def run_live(sig_a: str, sig_b: str) -> None:
-    state = load_state()
+def run_live_for_route(route: dict, sig_a: str, sig_b: str, state: dict) -> dict:
+    if not route.get("notify", True):
+        # Ingen notisbevakning för den här rutten - hoppa över Trafikverket-
+        # anropen helt, men håll sidans ticker/tidsstämpel levande.
+        update_live_elements(route)
+        return state
 
     now = datetime.now(SWEDEN_TZ)
     window_start = now - timedelta(hours=1)
     window_end = now + timedelta(hours=3)
 
     configs = [
-        ("kort", TRAIN_NUMBERS, DELAY_THRESHOLD_MIN),
-        ("lång", LONG_DISTANCE_TRAIN_NUMBERS, LONG_DISTANCE_DELAY_THRESHOLD_MIN),
+        ("kort", route["train_numbers"], DELAY_THRESHOLD_MIN),
+        ("lång", route["long_numbers"], LONG_DISTANCE_DELAY_THRESHOLD_MIN),
     ]
 
     announcements = []
     for label, train_numbers, threshold in configs:
-        for sig, name in [(sig_a, STATION_A), (sig_b, STATION_B)]:
+        for sig, name in [(sig_a, route["station_a"]), (sig_b, route["station_b"])]:
             anns = fetch_announcements(sig, train_numbers, window_start, window_end)
             for a in anns:
                 a["_station_name"] = name
                 a["_threshold"] = threshold
             announcements.extend(anns)
-            print(f"DEBUG: [{label}] {name} ({sig}) - {len(anns)} annonser hittade")
+            print(f"DEBUG: [{route['id']}/{label}] {name} ({sig}) - {len(anns)} annonser hittade")
 
     if os.environ.get("DEBUG_NOTIFY", "false").lower() == "true":
         avvikande = []
@@ -300,13 +358,13 @@ def run_live(sig_a: str, sig_b: str) -> None:
                 i_tid += 1
         msg = "\n".join(avvikande) if avvikande else "Alla hittade tåg i tid."
         msg += f"\n\n({i_tid} tåg i tid, {len(announcements)} totalt hittade)"
-        send_pushover("Debug: live-koll", msg)
+        send_pushover(f"Debug: live-koll ({route['id']})", msg)
 
     for a in announcements:
         train_id = a.get("AdvertisedTrainIdent")
         station_name = a["_station_name"]
         threshold = a["_threshold"]
-        key = f"{train_id}_{station_name}_{a.get('AdvertisedTimeAtLocation')}"
+        key = f"{route['id']}_{train_id}_{station_name}_{a.get('AdvertisedTimeAtLocation')}"
         cancelled = a.get("Canceled", False)
         delay = compute_delay_minutes(a)
         previous = state.get(key)
@@ -321,8 +379,20 @@ def run_live(sig_a: str, sig_b: str) -> None:
             )
             state[key] = delay
 
+    update_live_elements(route)
+    return state
+
+
+def run_live() -> None:
+    state = load_state()
+    for route in ROUTES:
+        if not route.get("notify", True):
+            update_live_elements(route)
+            continue
+        sig_a = find_location_signature(route["station_a"])
+        sig_b = find_location_signature(route["station_b"])
+        state = run_live_for_route(route, sig_a, sig_b, state)
     save_state(state)
-    update_live_elements()
 
 
 # --------------------------------------------------------------------------
@@ -334,6 +404,11 @@ DEFAULT_CSS = """/* ============================================================
    Ändra fritt här för att byta utseende - t.ex. färger, typsnitt,
    bakgrund. Ladda upp en ny version av just den här filen till
    docs/style.css för att uppdatera sidan.
+
+   Flera rutter delar den här filen. <body> får klassen "route-<id>"
+   (t.ex. route-eskilstuna eller route-stockholm) - använd
+   body.route-stockholm { ... } för regler som bara ska gälla en
+   specifik rutt, t.ex. andra gifs.
    ============================================================ */
 
 body {
@@ -422,13 +497,14 @@ tr.ontime { color: #33ff33; }
 """
 
 
-def ensure_default_stylesheet(docs_dir: Path) -> None:
+def ensure_default_stylesheet(top_docs_dir: Path) -> None:
     """
     Skapar docs/style.css med ett standardutseende OM filen inte redan
     finns. Rör aldrig en befintlig style.css - så dina egna ändringar
-    där skrivs aldrig över av en automatisk körning.
+    där skrivs aldrig över av en automatisk körning. Delas av alla rutter,
+    så tar alltid emot den ÖVERSTA docs-mappen, oavsett rutt.
     """
-    css_path = docs_dir / "style.css"
+    css_path = top_docs_dir / "style.css"
     if not css_path.exists():
         css_path.write_text(DEFAULT_CSS, encoding="utf-8")
 
@@ -453,6 +529,10 @@ def build_html_report(
     report_date: str,
     css_href: str,
     nav_html: str,
+    route_label: str,
+    body_class: str,
+    other_route_href: str,
+    other_route_label: str,
     extra_sections: list[tuple[str, list[dict]]] | None = None,
     quote_text: str = "",
     show_delay_banner: bool = False,
@@ -460,10 +540,9 @@ def build_html_report(
     updated_time: str = "",
 ) -> str:
     """
-    Bygger en HTML-sida med ett datums fullständiga resultat. extra_sections
-    kan innehålla ytterligare (rubrik, rader)-par som renderas som egna
-    tabeller under huvudtabellen - t.ex. en separat tabell för långdistans-
-    tåg med annan förseningsgräns.
+    Bygger en HTML-sida med ett datums fullständiga resultat för en rutt.
+    extra_sections kan innehålla ytterligare (rubrik, rader)-par som
+    renderas som egna tabeller under huvudtabellen.
     """
     extra_html = ""
     for heading, extra_rows in (extra_sections or []):
@@ -484,15 +563,16 @@ def build_html_report(
 <title>Mälartåg-bevakning – {report_date}</title>
 <link rel="stylesheet" href="{css_href}">
 </head>
-<body>
+<body class="{body_class}">
   <h1>Mälartåg-mañana</h1>
   <div class="ticker-wrap">
     <div class="ticker-text">{html.escape(quote_text)}</div>
   </div>
   <div class="{delay_banner_class}"></div>
   <div class="meta-box">
-    <p class="meta">Södertälje Syd ↔ Eskilstuna C &middot; Rapport för {report_date}</p>
+    <p class="meta">{route_label} &middot; Rapport för {report_date}</p>
     <p class="meta-updated">Senast uppdaterad: <span class="last-updated">{updated_time}</span></p>
+    <p class="meta-link"><a href="{other_route_href}">{other_route_label}</a></p>
   </div>
   {compensation_html}
   {nav_html}
@@ -505,7 +585,7 @@ def build_html_report(
 </html>"""
 
 
-def build_archive_index(archive_dir: Path) -> str:
+def build_archive_index(archive_dir: Path, back_href: str) -> str:
     """Bygger en översiktssida som listar alla tidigare arkiverade dagar."""
     dates = sorted(
         (p.stem for p in archive_dir.glob("*.html") if p.stem != "index"),
@@ -523,7 +603,7 @@ def build_archive_index(archive_dir: Path) -> str:
 </head>
 <body>
   <h1>Historik</h1>
-  <p class="nav-links"><a href="../index.html">&larr; Tillbaka till idag</a></p>
+  <p class="nav-links"><a href="{back_href}">&larr; Tillbaka till idag</a></p>
   <ul>
     {links}
   </ul>
@@ -532,7 +612,8 @@ def build_archive_index(archive_dir: Path) -> str:
 
 
 def collect_rows(
-    sig_a: str, sig_b: str, train_numbers: list[str], day_start: datetime, day_end: datetime
+    sig_a: str, station_a: str, sig_b: str, station_b: str,
+    train_numbers: list[str], day_start: datetime, day_end: datetime,
 ) -> list[dict]:
     """
     Hämtar dagens ankomster för en lista tågnummer vid båda stationerna,
@@ -540,7 +621,7 @@ def collect_rows(
     fallande på tågnummer.
     """
     rows = []
-    for sig, name in [(sig_a, STATION_A), (sig_b, STATION_B)]:
+    for sig, name in [(sig_a, station_a), (sig_b, station_b)]:
         anns = fetch_announcements(sig, train_numbers, day_start, day_end)
         for a in sorted(anns, key=lambda x: x.get("AdvertisedTimeAtLocation", "")):
             rows.append(
@@ -553,10 +634,6 @@ def collect_rows(
                 }
             )
 
-    # Deduplicera: ett tåg som passerar båda våra stationer dyker upp en
-    # gång per station. Behåll bara den kronologiskt SISTA (dvs. resans
-    # slutstation för just den här sträckan) - det är den som faktiskt
-    # speglar hela resans utfall, inte en mellanstation på vägen.
     latest_by_train: dict[str, dict] = {}
     for r in rows:
         train_id = r["train_id"]
@@ -609,15 +686,15 @@ def rows_from_archive_html(page: str) -> list[dict]:
     return rows
 
 
-def count_compensated_delays(rows: list[dict]) -> tuple[int, int]:
+def count_compensated_delays(
+    rows: list[dict], short_numbers: list[str], long_numbers: list[str]
+) -> tuple[int, int]:
     """
     Returnerar (antal kortdistans-, antal långdistansförseningar) som ger
-    ersättning. Tåget klassas efter vilken lista numret ligger i, inte efter
-    vilken tabell raden stod i - så även gamla sidor (före tabellsplitten)
-    räknas rätt. Ett tåg som står med flera rader samma dag (en per station)
-    räknas bara en gång, med den kronologiskt sista - samma regel som i
-    tabellen. Inställda tåg saknar minutsiffra och räknas alltid, med
-    ersättningen för sin kategori.
+    ersättning FÖR EN GIVEN RUTTS tåglistor. Tåget klassas efter vilken
+    lista numret ligger i, inte efter vilken tabell raden stod i. Ett tåg
+    som står med flera rader samma dag räknas bara en gång, med den
+    kronologiskt sista. Inställda tåg saknar minutsiffra och räknas alltid.
     """
     latest: dict[str, dict] = {}
     for r in rows:
@@ -627,26 +704,33 @@ def count_compensated_delays(rows: list[dict]) -> tuple[int, int]:
 
     short_n = long_n = 0
     for tid, r in latest.items():
-        if tid in LONG_DISTANCE_TRAIN_NUMBERS:
+        if tid in long_numbers:
             if r["cancelled"] or r["delay"] >= LONG_COMP_THRESHOLD_MIN:
                 long_n += 1
-        elif tid in TRAIN_NUMBERS:
+        elif tid in short_numbers:
             if r["cancelled"] or r["delay"] >= SHORT_COMP_THRESHOLD_MIN:
                 short_n += 1
     return short_n, long_n
 
 
-def compensation_from_archive(archive_dir: Path, exclude_date: str) -> tuple[int, int]:
+def compensation_from_archive(
+    archive_dir: Path, exclude_date: str, short_numbers: list[str], long_numbers: list[str]
+) -> tuple[int, int]:
     """
-    Summerar ersättningsgrundande förseningar över alla arkiverade dagar,
-    utom exclude_date (dagens siffror kommer direkt från minnet istället,
-    så en tidigare körning samma dag inte räknas dubbelt).
+    Summerar ersättningsgrundande förseningar över alla arkiverade dagar
+    FÖR EN GIVEN RUTT, utom exclude_date (dagens siffror kommer direkt
+    från minnet istället, så en tidigare körning samma dag inte räknas
+    dubbelt).
     """
     short_total = long_total = 0
+    if not archive_dir.exists():
+        return 0, 0
     for path in sorted(archive_dir.glob("*.html")):
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", path.stem) or path.stem == exclude_date:
             continue
-        s, l = count_compensated_delays(rows_from_archive_html(path.read_text(encoding="utf-8")))
+        s, l = count_compensated_delays(
+            rows_from_archive_html(path.read_text(encoding="utf-8")), short_numbers, long_numbers
+        )
         short_total += s
         long_total += l
     return short_total, long_total
@@ -664,21 +748,23 @@ def build_compensation_html(short_n: int, long_n: int) -> str:
   <div class="welcome-banner"></div>"""
 
 
-def run_daily_summary(sig_a: str, sig_b: str) -> None:
+def run_daily_summary_for_route(route: dict, sig_a: str, sig_b: str, top_docs_dir: Path) -> None:
     now = datetime.now(SWEDEN_TZ)
     day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     day_end = day_start + timedelta(days=1)
     report_date = now.strftime("%Y-%m-%d")
     updated_time = now.strftime("%H:%M")
 
-    rows = collect_rows(sig_a, sig_b, TRAIN_NUMBERS, day_start, day_end)
-    long_rows = collect_rows(sig_a, sig_b, LONG_DISTANCE_TRAIN_NUMBERS, day_start, day_end)
+    station_a, station_b = route["station_a"], route["station_b"]
+    train_numbers, long_numbers = route["train_numbers"], route["long_numbers"]
+    route_label = f"{station_a} ↔ {station_b}"
+
+    rows = collect_rows(sig_a, station_a, sig_b, station_b, train_numbers, day_start, day_end)
+    long_rows = collect_rows(sig_a, station_a, sig_b, station_b, long_numbers, day_start, day_end)
 
     long_heading = f"Långdistanståg (över 150 km, gräns {LONG_DISTANCE_DELAY_THRESHOLD_MIN} min)"
     extra_sections = [(long_heading, long_rows)]
 
-    # Bannern ska visas om NÅGOT tåg (kort eller lång lista) uppfyllde sin
-    # egen tröskel eller blev inställt någon gång under dagen.
     show_delay_banner = any(
         r["cancelled"] or r["delay"] >= DELAY_THRESHOLD_MIN for r in rows
     ) or any(
@@ -687,21 +773,20 @@ def run_daily_summary(sig_a: str, sig_b: str) -> None:
 
     quote_text = get_daily_quote()
 
-    # Skriv HTML-rapporten till docs/ - GitHub Pages kan visa den publikt.
-    docs_dir = Path(__file__).parent / "docs"
+    docs_dir = Path(__file__).parent / route["docs_subdir"]
     archive_dir = docs_dir / "archive"
-    docs_dir.mkdir(exist_ok=True)
+    docs_dir.mkdir(parents=True, exist_ok=True)
     archive_dir.mkdir(exist_ok=True)
 
-    ensure_default_stylesheet(docs_dir)
+    ensure_default_stylesheet(top_docs_dir)
 
-    # Ersättning: tidigare dagar läses ur arkivet, dagens kommer direkt från
-    # minnet (så en tidigare körning samma dag inte räknas dubbelt).
-    past_short, past_long = compensation_from_archive(archive_dir, exclude_date=report_date)
-    today_short, today_long = count_compensated_delays(rows + long_rows)
+    past_short, past_long = compensation_from_archive(
+        archive_dir, exclude_date=report_date, short_numbers=train_numbers, long_numbers=long_numbers
+    )
+    today_short, today_long = count_compensated_delays(rows + long_rows, train_numbers, long_numbers)
     comp_short, comp_long = past_short + today_short, past_long + today_long
     print(
-        f"DEBUG: ersättning - historik {past_short} kort + {past_long} lång, "
+        f"DEBUG: [{route['id']}] ersättning - historik {past_short} kort + {past_long} lång, "
         f"idag {today_short} kort + {today_long} lång, totalt "
         f"{comp_short * SHORT_COMP_KR + comp_long * LONG_COMP_KR} kr"
     )
@@ -713,34 +798,35 @@ def run_daily_summary(sig_a: str, sig_b: str) -> None:
         '&middot; <a href="index.html">Alla dagar</a></p>'
     )
 
-    # Dagens sida (docs/index.html) - det du ser som standard på hemsidan.
+    # Dagens sida - det du ser som standard på rutten.
     (docs_dir / "index.html").write_text(
         build_html_report(
-            rows, report_date, css_href="style.css", nav_html=today_nav,
+            rows, report_date, css_href="style.css" if route["docs_subdir"] == "docs" else "../style.css",
+            nav_html=today_nav, route_label=route_label, body_class=route["css_class"],
+            other_route_href=route["other_route_href"], other_route_label=route["other_route_label"],
             extra_sections=extra_sections, quote_text=quote_text,
-            show_delay_banner=show_delay_banner,
-            compensation_html=compensation_html,
+            show_delay_banner=show_delay_banner, compensation_html=compensation_html,
             updated_time=updated_time,
         ),
         encoding="utf-8",
     )
 
     # Samma rapport arkiverad under sitt datum, för historik.
+    archive_css_href = "../style.css" if route["docs_subdir"] == "docs" else "../../style.css"
     (archive_dir / f"{report_date}.html").write_text(
         build_html_report(
-            rows, report_date, css_href="../style.css", nav_html=archive_nav,
+            rows, report_date, css_href=archive_css_href, nav_html=archive_nav,
+            route_label=route_label, body_class=route["css_class"],
+            other_route_href=route["other_route_href_from_archive"], other_route_label=route["other_route_label"],
             extra_sections=extra_sections, quote_text=quote_text,
-            show_delay_banner=show_delay_banner,
-            updated_time=updated_time,
+            show_delay_banner=show_delay_banner, updated_time=updated_time,
         ),
         encoding="utf-8",
     )
 
-    # Bygg om historik-listan så dagens datum dyker upp där också.
-    (archive_dir / "index.html").write_text(build_archive_index(archive_dir), encoding="utf-8")
+    back_href = "../index.html" if route["docs_subdir"] == "docs" else "../index.html"
+    (archive_dir / "index.html").write_text(build_archive_index(archive_dir, back_href), encoding="utf-8")
 
-    # Kort Pushover-version: bara avvikelser i detalj, resten summerat,
-    # med de två listorna som separata avsnitt.
     avvikande, ok_count = rows_to_pushover_lines(rows)
     long_avvikande, long_ok_count = rows_to_pushover_lines(long_rows)
 
@@ -757,7 +843,15 @@ def run_daily_summary(sig_a: str, sig_b: str) -> None:
         parts.append(f"Inga avvikelser. {long_ok_count} tåg i tid.")
 
     message = "\n\n".join(parts)
-    send_pushover(f"Dagens tågsammanfattning ({report_date})", message)
+    send_pushover(f"Dagens tågsammanfattning: {route_label} ({report_date})", message)
+
+
+def run_daily_summary() -> None:
+    top_docs_dir = Path(__file__).parent / "docs"
+    for route in ROUTES:
+        sig_a = find_location_signature(route["station_a"])
+        sig_b = find_location_signature(route["station_b"])
+        run_daily_summary_for_route(route, sig_a, sig_b, top_docs_dir)
 
 
 # --------------------------------------------------------------------------
@@ -774,15 +868,11 @@ def main() -> None:
     if missing:
         sys.exit("Saknar konfiguration för: " + ", ".join(missing))
 
-    sig_a = find_location_signature(STATION_A)
-    sig_b = find_location_signature(STATION_B)
-    print(f"DEBUG: platsignaturer - {STATION_A} = '{sig_a}', {STATION_B} = '{sig_b}'")
-
     mode = os.environ.get("MODE", "live").lower()
     if mode == "daily_summary":
-        run_daily_summary(sig_a, sig_b)
+        run_daily_summary()
     else:
-        run_live(sig_a, sig_b)
+        run_live()
 
 
 if __name__ == "__main__":
