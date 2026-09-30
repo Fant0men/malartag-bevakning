@@ -51,7 +51,7 @@ TRAIN_NUMBERS = [
     "10903", "10905", "10907", "10921", "10923", "10925"
 ]
 
-DELAY_THRESHOLD_MIN = 16
+DELAY_THRESHOLD_MIN = 19
 
 # Tåg som går längre än 150 km - hanteras separat med en högre tröskel
 # (60 min) eftersom mindre förseningar är vanligare och mindre relevanta
@@ -63,7 +63,7 @@ LONG_DISTANCE_TRAIN_NUMBERS = [
     "971", "20958"
 ]
 
-LONG_DISTANCE_DELAY_THRESHOLD_MIN = 60
+LONG_DISTANCE_DELAY_THRESHOLD_MIN = 59
 
 # Ersättning per försening. Ligger separat från notiströsklarna ovan - en
 # försening på 16-19 min på kortdistans ger notis men ingen ersättning.
