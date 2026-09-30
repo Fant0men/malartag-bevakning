@@ -236,3 +236,17 @@ table:last-of-type::after {
   color: #cccccc;
   font-size: 0.8rem;
 }
+
+.meta-box {
+  text-align: center;
+  background: #000000;
+  border: 3px outset #3CC490;
+  padding: 0.6rem;
+  margin-top: 1rem;
+}
+
+.meta-updated {
+  color: #999999;
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+}
