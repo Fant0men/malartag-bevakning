@@ -107,7 +107,7 @@ ROUTES = [
         "css_class": "route-eskilstuna",
         "other_route_href": "stockholm/index.html",
         "other_route_href_from_archive": "../stockholm/index.html",
-        "other_route_label": "Stockholmssidan",
+        "other_route_label": "STOCKHOLM",
         "notify": True,
     },
     {
