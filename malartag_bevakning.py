@@ -23,6 +23,7 @@ Notiser: Pushover (https://pushover.net)
 import html
 import json
 import os
+import random
 import re
 import sys
 from datetime import datetime, timedelta
@@ -50,7 +51,7 @@ TRAIN_NUMBERS_ESKILSTUNA = [
 ]
 
 # Tåg som går längre än 150 km på Eskilstuna-linjen - hanteras separat
-# med en högre tröskel (60 min)., "977", "983", "989"
+# med en högre tröskel (60 min).
 LONG_DISTANCE_TRAIN_NUMBERS_ESKILSTUNA = [
     "906", "910", "914", "918", "924", "928", "932", "936", "940", "946",
     "950", "20954", "964", "970", "976", "982", "988", "907", "911", "915",
@@ -58,23 +59,17 @@ LONG_DISTANCE_TRAIN_NUMBERS_ESKILSTUNA = [
     "971", "20958"
 ]
 
-# ============================================================================
-# FYLL I DINA EGNA TÅGNUMMER HÄR för linjen Södertälje Syd <-> Stockholm C.
-# Samma princip som ovan: TRAIN_NUMBERS_STOCKHOLM för kortdistans (nuvarande
-# tröskel DELAY_THRESHOLD_MIN), LONG_DISTANCE_TRAIN_NUMBERS_STOCKHOLM för tåg
-# över 150 km (tröskel LONG_DISTANCE_DELAY_THRESHOLD_MIN). Tomma listor
-# betyder att den sidan byggs men aldrig hittar några tåg än.
-# ============================================================================
+# Tågnummer för linjen Södertälje Syd <-> Stockholm C.
 TRAIN_NUMBERS_STOCKHOLM: list[str] = [
-    "216", "218", "200",  "220", "202", "222",  "224",  "226",  "228", "230",  
-  "232", "234", "236",   "20954", "238",  "20958", "240",  "208", "242",  "244", "246", "248",
-  "250", "10900", "10902", "10904", "10906", "10922", "10901",
+    "216", "218", "200", "220", "202", "222", "224", "226", "228", "230",
+    "232", "234", "236", "20954", "238", "20958", "240", "208", "242", "244", "246", "248",
+    "250", "10900", "10902", "10904", "10906", "10922", "10901",
     "10903", "10905", "10907", "10921", "10923", "10925"
 ]
 
 LONG_DISTANCE_TRAIN_NUMBERS_STOCKHOLM: list[str] = [
-    "118", "120", "136","138", "140","142","144", "148","906", "910", "914", "918", "924", "928", "932", "936", "940", "946",
-    "4122","4124","4128", "4132","950", "20954", "964", "970", "976", "982", "988", "907", "911", "915",
+    "118", "120", "136", "138", "140", "142", "144", "148", "906", "910", "914", "918", "924", "928", "932", "936", "940", "946",
+    "4122", "4124", "4128", "4132", "950", "20954", "964", "970", "976", "982", "988", "907", "911", "915",
     "919", "929", "933", "937", "941", "947", "951", "955", "959", "965",
     "971", "20958"
 ]
@@ -90,11 +85,73 @@ SHORT_COMP_KR = 19
 LONG_COMP_THRESHOLD_MIN = 60
 LONG_COMP_KR = 37
 
+# ============================================================================
+# EGNA CITAT FÖR STOCKHOLMSSIDAN. Fyll på listan med dina egna handplockade
+# citat (en sträng per citat). Så länge listan är icke-tom används BARA
+# den här listan för Stockholmssidans ticker - Seinfeld-API:et rörs inte
+# alls för den rutten. Lämna listan tom för att istället använda Seinfeld-
+# citat även där (samma som Eskilstuna-sidan).
+# ============================================================================
+CUSTOM_QUOTES_STOCKHOLM: list[str] = [
+    "Just ja, jag var ju kompis med honom först. Så var det ja. - Magnus Uggla",
+    "Har du sett den där filmen på Måns Zelmerlöw som cirkulerar där han är DJ i Båstad och står och sjunger Sommaren i city och ingen bryr sig liksom. - Magnus Uggla",
+    "Fast den är ju tagen ur sitt sammanhang. Asså varför står han där och är DJ. - Magnus Uggla",
+    "Ja, det kan man faktiskt. För han står där och tycker att det är kul att vara DJ bara får jag för mig. I all anspråkslöshet, han skiter i att han är Måns Zelmerlöw, han vill spela lite plattor där mellan fyra och fem, i all enkelhet. Så drar man det parallellt med att fansen har dragit ifrån honom, det tycker jag är så dåligt. Det var nån journalist om det var i DN eller Svenskan, han drog den parallellen att fansen har svikit honom, att det är pinsamt liksom. - Magnus Uggla",
+    "Det kan också vara så att alla artister som håller på tillräckligt länge har då och då en svacka där man plötsligt står och gör något sånt här DJ:ande eller jobbigt, att det skulle vara pinsamt att han gör det, jag är inte helt hundra på att det är det. - Magnus Uggla",
+    "Han skiter i att han är Måns Zelmerlöw, han vill stå och spela lite plattor i all enkelhet. - Magnus Uggla",
+    "Det kan också vara så att alla artister som håller på tillräckligt länge har då och då en svacka. - Magnus Uggla",
+    "Det är rätt stelt. - Magnus Uggla",
+    "Jag står och väntar längst bak på att få en klarsignal för att gå på. Jag får det, men då har han som har gett mig den gjort fel så han rusar ikapp mig och drar mig tillbaka. - Magnus Uggla",
+    "Det här var ett jävla västgötaklimax. - Magnus Uggla",
+    "Nej, det är rätt stelt, skulle jag säga. Det är nog inte för att de inte är fina människor som de inte skrattar, utan för att de är för få för att våga brista ut i gapskratt. Det känns lite högtidligt. - Magnus Uggla",
+    "Jag vågar inte titta kungen, drottningen och Carl Philip i ögonen. De sitter för nära. Jag tittar ut i lokalen. Jag tror att de tycker att det är skönt också, jag inbillar mig det. - Magnus Uggla",
+    "Det är ordning här, riktigt organiserat är det. Jag är sjukt imponerad, högsta betyg. - Magnus Uggla",
+    "Ingen aning, det beror på hur fulla de är. - Magnus Uggla",
+    "Det är det definitivt. - Magnus Uggla",
+    "Min första sista turné. - Magnus Uggla",
+    "Första, sista turné. - Magnus Uggla",
+    "Jag drabbas av känslan att jag befinner mig i Östtyskland före 1989. Det är konstiga varumärken man aldrig sett, personalen som går är strama, dom ser ut som såna där östtyska kvinnor med strama frisyrer som pryglar upp en om man säger fel. - Magnus Uggla",
+    "Jag gick fram till en människa och frågade ett biträde om var korvarna var någonstans. Jag blev avsnäst på ett bryskt sätt. - Magnus Uggla",
+    "Jag stod där och kissade när jag såg något blixtra till i kaklet. - Magnus Uggla",
+    "Bara tanken på att behöva oroa sig för att någon ska fota en vid en pissränna är fruktansvärd. - Magnus Uggla",
+    "Jag ställde mig på vågen och vägde över 60 kilo. - Magnus Uggla",
+    "Nu börjar vi närma oss där. - Magnus Uggla",
+    "Så glad i hågen på söndagen, ganska bakis dessutom, så gick jag in på Lidl. Jag har aldrig varit på Lidl förut. Jag drabbas av känslan att jag befinner mig i Östtyskland före 1989. Det är konstiga varumärken man aldrig sett, personalen som går är strama, dom ser ut som såna där östtyska kvinnor med strama frisyrer som pryglar upp en om man säger fel. Jag gick fram till en människa och frågade ett biträde om var korvarna var var någonstans. Jag blev avsnäst på ett bryskt sätt. - Magnus Uggla",
+    "Det var ju kanske inte den snyggaste bukett jag har sett, men köper man en blombukett på Lidl så kanske man inte kan förvänta sig att man får nånting som Blomsterkungen som satt fram. Då är det Lidls blomsterbukett. - Magnus Uggla",
+    "Hon var så arg. - Magnus Uggla",
+    "Eller så går du till ett annat ställe, en annan affär, och köper blommor. - Magnus Uggla",
+    "Det blev ju genast jättejobbigt. Då började alla diskutera vem har ställt in smörgåsen i kylen? Det är öl som står där. Inga smörgåsar. Vi är genast oroliga att ölen ska ta smak av den här smörgåsen. - Magnus Uggla",
+    "Tänk dig att man går av scenen efter två föreställningar och inte har fått in sin öl för att nån har ställt en smörgås där. Det blir ett jävla liv. - Magnus Uggla",
+    "Då var det någon utböling, någon av teknikerna som flyttat på Nypans öl som stod i mitten och lagt dom på ett annat ställe. Och då blev det ett jävla bråk. Det går inte. Och vi ska upp på scenen sen och så har vi det här bråket innan. Det har varit jättejobbigt innan vi liksom beslutat hur det ska gå till. Vi har diskuterat och kommit fram och bestämt att inget annat än öl och sprit får förvaras i kylen. - Magnus Uggla",
+    "En feel-good-god-morgon-kille. - Magnus Uggla",
+    "Jag hade dragit på mig en könssjukdom när jag skulle göra det där. Jättejobbigt. Så jag ringde återbud. - Magnus Uggla",
+    "Jag kände että det kanske kunde ge konstiga utslag. Inte kroppsutslag utan att det skulle bli fel utslag på min mönstring. Att dom skulle komma på mig med det här. - Magnus Uggla",
+    "Det var ett år åt helvete. Man satte heder och ära att slippa skiten. I alla fall dom som bodde i Stockholm. - Magnus Uggla",
+    "Vi var fulla. - Magnus Uggla",
+    "100 burgare. - Magnus Uggla",
+    "Det var ju så dumt formulerat det där kortet för det berättigade till en värdemeny men i och med att jag då redan fått en värdemeny så kan jag be om att få en till. - Magnus Uggla",
+    "Jag kan köpa mat till hela den här restaurangen. - Magnus Uggla",
+    "Ja man var ju packad. - Magnus Uggla",
+    "Det var en överdrift i alla fall. - Magnus Uggla",
+    "Jag är ju fenomenal på att smita förbi dom här kameramänniskorna. Nu för tiden är det så proffsigt gjort, det är ju en fond man ställer sig mot. Men det tog jag mig förbi. - Magnus Uggla",
+    "Jag stod där och kissade när jag såg något blixtra till i kaklet. Jag sprang ut, hann ikapp killen precis när han skulle lämna stället, slet telefonen ur handen på honom och gick direkt till vakterna. - Magnus Uggla",
+    "Nu börjar vi närma oss där. Över 60 är en gräns jag inte vill vara över. - Magnus Uggla",
+    "Det var ett trevligt program. Pernilla är superduktig. Fan vad bra hon är. - Magnus Uggla",
+    "The winner takes it all, la la la. - Magnus Uggla",
+    "Hon ställde skåpet till rätta? - Magnus Uggla",
+    "Han kanske fick en blackout? - Magnus Uggla",
+    "Det kan man väl få. Det är inte otänkbart. Man har rätt som artist få blackout. Det tänker jag alltid när jag står där och sjunger, framförallt när man gör live i tv. Alla säger \"fan vad ni verkar ha det kul\". Men det är precis raka motsatsen, en lång lång dags väntan, där man är lite spänd, man vet att det går direkt ut i tv, man vet att det är en miljon som kollar, och kommer man av sig blir det ett klipp på Youtube som ligger kvar resten av livet. Det där har man med sig under hela dagen tills man ska ställa sig och sjunga, dagen efter den här direktsändningen är man slut. - Magnus Uggla",
+    "Sjukt bra. - Magnus Uggla",
+    "Det jobbiga var när man skulle gå på muggen. Då fanns det sån där pissmugg för snubbar. Jag skulle aldrig gå in och ställa mig på en sån där. Det luktar urin. Killar står på ett led. Man ska pissa fort. Man ska jävligt kissnödig så det bara kommer. Annars får man stå där och klämma. Och har man oflyt för man blir så stressad av alla snubbar som står runtomkring en så plötsligt har man pissat ner halva brallorna. - Magnus Uggla"
+]
+
 # ----------------------------------------------------------------------------
 # RUTTER - lägg till fler här i framtiden genom att lägga till ett till
 # dict i listan. "docs_subdir" styr var på hemsidan sidan hamnar, "css_class"
 # är kroken din style.css kan använda för att ge rutten egen grafik (se
-# instruktionerna du fått separat för body.route-xxx-selektorer).
+# instruktionerna du fått separat för body.route-xxx-selektorer). "quotes"
+# styr citatkällan för tickern: tom lista eller None = Seinfeld-API, annars
+# slumpas ett citat ur den egna listan varje körning.
 # ----------------------------------------------------------------------------
 ROUTES = [
     {
@@ -109,6 +166,7 @@ ROUTES = [
         "other_route_href_from_archive": "../stockholm/index.html",
         "other_route_label": "STOCKHOLM",
         "notify": True,
+        "quotes": None,
     },
     {
         "id": "stockholm",
@@ -122,6 +180,7 @@ ROUTES = [
         "other_route_href_from_archive": "../../index.html",
         "other_route_label": "Huvudsidan (Eskilstuna)",
         "notify": False,
+        "quotes": CUSTOM_QUOTES_STOCKHOLM,
     },
 ]
 
@@ -266,7 +325,7 @@ def send_pushover(title: str, message: str) -> None:
     )
 
 
-def get_daily_quote() -> str:
+def get_seinfeld_quote() -> str:
     """
     Hämtar ett slumpat Seinfeld-citat. Om API:et av någon anledning inte
     svarar, används en egen (icke-upphovsrättsskyddad) reservtext istället
@@ -286,6 +345,17 @@ def get_daily_quote() -> str:
     return "Vad är det för deal med tåg som alltid är sena?"
 
 
+def get_quote_for_route(route: dict) -> str:
+    """
+    Väljer citatkälla per rutt. Har rutten en egen (icke-tom) "quotes"-lista
+    slumpas ett citat därifrån - annars används Seinfeld-API:et.
+    """
+    custom = route.get("quotes") or []
+    if custom:
+        return random.choice(custom)
+    return get_seinfeld_quote()
+
+
 def update_live_elements(route: dict) -> None:
     """
     Byter ut BARA citat-texten och "senast uppdaterad"-tiden i redan
@@ -294,7 +364,7 @@ def update_live_elements(route: dict) -> None:
     av run_live() så sidan känns levande även mellan de dagliga
     sammanställningarna.
     """
-    quote_text = get_daily_quote()
+    quote_text = get_quote_for_route(route)
     escaped_quote = html.escape(quote_text)
     updated_time = datetime.now(SWEDEN_TZ).strftime("%H:%M")
 
@@ -773,7 +843,7 @@ def run_daily_summary_for_route(route: dict, sig_a: str, sig_b: str, top_docs_di
         r["cancelled"] or r["delay"] >= LONG_DISTANCE_DELAY_THRESHOLD_MIN for r in long_rows
     )
 
-    quote_text = get_daily_quote()
+    quote_text = get_quote_for_route(route)
 
     docs_dir = Path(__file__).parent / route["docs_subdir"]
     archive_dir = docs_dir / "archive"
@@ -826,7 +896,7 @@ def run_daily_summary_for_route(route: dict, sig_a: str, sig_b: str, top_docs_di
         encoding="utf-8",
     )
 
-    back_href = "../index.html" if route["docs_subdir"] == "docs" else "../index.html"
+    back_href = "../index.html"
     (archive_dir / "index.html").write_text(build_archive_index(archive_dir, back_href), encoding="utf-8")
 
     avvikande, ok_count = rows_to_pushover_lines(rows)
