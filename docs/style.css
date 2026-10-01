@@ -258,3 +258,8 @@ body.route-stockholm h2::before { background-image: url("assets-stockholm/longdi
 body.route-stockholm h2::after  { background-image: url("assets-stockholm/fishy.gif"); }
 body.route-stockholm table:last-of-type::after { background-image: url("assets-stockholm/footer.gif"); }
 body.route-stockholm .delay-banner.show { background-image: url("assets-stockholm/delay-alert.gif"); }
+
+body.route-stockholm {
+  background-color: #2039b3;
+  background-image: url("assets-stockholm/snoww.gif");
+}
