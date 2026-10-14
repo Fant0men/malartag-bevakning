@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Gästbok – moderering</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; max-width: 700px; margin: 1rem auto; padding: 0 1rem; background: #111; color: #ddd; }
+  h1 { font-size: 1.3rem; }
+  label { display: block; margin-top: 0.8rem; font-size: 0.85rem; color: #aaa; }
+  input { width: 100%; box-sizing: border-box; padding: 0.5rem; font-size: 1rem; background: #222; color: #fff; border: 1px solid #555; }
+  button { padding: 0.5rem 0.9rem; font-size: 1rem; cursor: pointer; margin-top: 0.8rem; }
+  .entry { border-top: 1px solid #444; padding: 0.7rem 0; }
+  .head { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; color: #aaa; }
+  .name { color: #ffcc00; font-weight: bold; }
+  .msg { margin: 0.3rem 0 0.5rem; word-break: break-word; }
+  .del { background: #8b1a1a; color: #fff; border: 0; margin-top: 0; }
+  #status { margin-top: 0.8rem; color: #ffcc00; }
+</style>
+</head>
+<body>
+  <h1>Gästbok – moderering</h1>
+  <label for="api">Gästbokens adress (din Worker)</label>
+  <input id="api" type="url" placeholder="https://gastbok.DITTNAMN.workers.dev" autocomplete="off">
+  <label for="token">Moderatornyckel (ADMIN_TOKEN) – sparas aldrig</label>
+  <input id="token" type="password" autocomplete="off">
+  <button id="load" type="button">Hämta inlägg</button>
+  <div id="status" role="status"></div>
+  <div id="list"></div>
+
+<script>
+(function () {
+  var apiEl = document.getElementById('api');
+  var tokenEl = document.getElementById('token');
+  var statusEl = document.getElementById('status');
+  var listEl = document.getElementById('list');
+  try { apiEl.value = localStorage.getItem('gb-admin-api') || ''; } catch (e) {}
+
+  function base() { return apiEl.value.trim().replace(/\/+$/, ''); }
+
+  function render(entries) {
+    listEl.textContent = '';
+    if (!entries.length) { listEl.textContent = 'Inga inlägg.'; return; }
+    entries.forEach(function (e) {
+      var box = document.createElement('div'); box.className = 'entry';
+      var head = document.createElement('div'); head.className = 'head';
+      var who = document.createElement('span'); who.className = 'name'; who.textContent = e.name;
+      var when = document.createElement('span');
+      when.textContent = new Date(e.ts).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm' }) + '  (id ' + e.id + ')';
+      head.appendChild(who); head.appendChild(when);
+      var msg = document.createElement('div'); msg.className = 'msg'; msg.textContent = e.message;
+      var del = document.createElement('button'); del.className = 'del'; del.type = 'button'; del.textContent = 'Ta bort';
+      del.addEventListener('click', function () { remove(e, del); });
+      box.appendChild(head); box.appendChild(msg); box.appendChild(del);
+      listEl.appendChild(box);
+    });
+  }
+
+  function load() {
+    statusEl.textContent = '';
+    if (!base()) { statusEl.textContent = 'Fyll i gästbokens adress först.'; return; }
+    try { localStorage.setItem('gb-admin-api', base()); } catch (e) {}
+    fetch(base() + '/', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { render(d.entries || []); })
+      .catch(function () { statusEl.textContent = 'Kunde inte hämta inläggen.'; });
+  }
+
+  function remove(entry, btn) {
+    if (!tokenEl.value) { statusEl.textContent = 'Fyll i moderatornyckeln för att kunna ta bort.'; return; }
+    if (!confirm('Ta bort inlägget av "' + entry.name + '"?')) return;
+    btn.disabled = true;
+    fetch(base() + '/' + encodeURIComponent(entry.id), {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + tokenEl.value }
+    }).then(function (r) {
+      if (r.status === 200) { statusEl.textContent = 'Borttaget.'; load(); }
+      else if (r.status === 401) { statusEl.textContent = 'Fel moderatornyckel.'; btn.disabled = false; }
+      else if (r.status === 404) { statusEl.textContent = 'Inlägget fanns inte längre.'; load(); }
+      else { statusEl.textContent = 'Något gick fel (' + r.status + ').'; btn.disabled = false; }
+    }).catch(function () { statusEl.textContent = 'Nätverksfel.'; btn.disabled = false; });
+  }
+
+  document.getElementById('load').addEventListener('click', load);
+  if (base()) load();
+})();
+</script>
+</body>
+</html>
