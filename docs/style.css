@@ -279,3 +279,16 @@ body.route-stockholm {
   cursor: pointer;
 }
 #music-title { color: #33ff33; font-size: 0.8rem; margin-left: 0.5rem; }
+
+
+.refresh-wrap { text-align: center; margin: 0.6rem 0; }
+#refresh-btn {
+  font-family: "Courier New", monospace;
+  font-weight: bold;
+  background: #ffcc00;
+  color: #000000;
+  border: 3px outset #ffee88;
+  padding: 0.3rem 1rem;
+  cursor: pointer;
+}
+#refresh-btn:active { border-style: inset; }
