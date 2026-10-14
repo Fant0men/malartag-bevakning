@@ -656,6 +656,129 @@ def render_table_rows(rows: list[dict]) -> str:
 
 
 # --------------------------------------------------------------------------
+# GÄSTBOK (frontend - själva datan ligger i en Cloudflare Worker, se guestbook-worker.js)
+# --------------------------------------------------------------------------
+# Klistra in adressen till din Worker här, t.ex. "https://gastbok.dittnamn.workers.dev"
+# Lämnas den tom visas ingen gästbok på sidan.
+GUESTBOOK_URL = "https://gastbok.minifruttiman.workers.dev"
+
+GUESTBOOK_TEMPLATE = """
+  <div class="guestbook" id="guestbook">
+    <div class="guestbook-title">&#9997; G&Auml;STBOK &#9997;</div>
+    <form id="gb-form" autocomplete="off">
+      <input type="text" id="gb-name" maxlength="30" placeholder="Ditt namn" required>
+      <textarea id="gb-message" maxlength="200" rows="3" placeholder="Skriv n&aring;got (max 200 tecken)" required></textarea>
+      <input type="text" id="gb-website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+             style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
+      <div class="gb-row">
+        <span id="gb-count">0 / 200</span>
+        <button type="submit" id="gb-send">Skriv i g&auml;stboken</button>
+      </div>
+      <div id="gb-status" role="status"></div>
+    </form>
+    <div id="gb-entries"></div>
+  </div>
+  <script>
+  (function () {
+    var API = __GUESTBOOK_URL__;
+    var form = document.getElementById('gb-form');
+    var nameEl = document.getElementById('gb-name');
+    var msgEl = document.getElementById('gb-message');
+    var countEl = document.getElementById('gb-count');
+    var sendBtn = document.getElementById('gb-send');
+    var statusEl = document.getElementById('gb-status');
+    var listEl = document.getElementById('gb-entries');
+    var fmt;
+    try {
+      fmt = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit',
+        day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    } catch (e) { fmt = null; }
+
+    try { nameEl.value = localStorage.getItem('gb-name') || ''; } catch (e) {}
+
+    function stamp(iso) {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return fmt ? fmt.format(d) : d.toISOString().replace('T', ' ').slice(0, 16);
+    }
+    function render(entries) {
+      listEl.textContent = '';
+      if (!entries.length) {
+        var empty = document.createElement('div');
+        empty.className = 'gb-empty';
+        empty.textContent = 'Inga inlägg ännu - bli först!';
+        listEl.appendChild(empty);
+        return;
+      }
+      entries.forEach(function (e) {
+        var box = document.createElement('div');
+        box.className = 'gb-entry';
+        var head = document.createElement('div');
+        head.className = 'gb-head';
+        var who = document.createElement('span');
+        who.className = 'gb-name';
+        who.textContent = e.name;               // textContent = aldrig HTML-injektion
+        var when = document.createElement('span');
+        when.className = 'gb-time';
+        when.textContent = stamp(e.ts);
+        head.appendChild(who);
+        head.appendChild(when);
+        var body = document.createElement('div');
+        body.className = 'gb-msg';
+        body.textContent = e.message;
+        box.appendChild(head);
+        box.appendChild(body);
+        listEl.appendChild(box);
+      });
+    }
+    function load() {
+      fetch(API, { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) { render(d.entries || []); })
+        .catch(function () { listEl.textContent = 'Kunde inte hämta gästboken just nu.'; });
+    }
+    msgEl.addEventListener('input', function () { countEl.textContent = msgEl.value.length + ' / 200'; });
+
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      statusEl.textContent = '';
+      sendBtn.disabled = true;
+      fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: nameEl.value, message: msgEl.value,
+          website: document.getElementById('gb-website').value
+        })
+      }).then(function (r) {
+        if (r.status === 201 || r.status === 200) {
+          try { localStorage.setItem('gb-name', nameEl.value); } catch (e) {}
+          msgEl.value = ''; countEl.textContent = '0 / 200';
+          statusEl.textContent = 'Tack för ditt inlägg!';
+          load();
+        } else if (r.status === 429) {
+          statusEl.textContent = 'Du har redan skrivit i gästboken idag - kom tillbaka imorgon!';
+        } else {
+          statusEl.textContent = 'Något gick fel - kontrollera namn och meddelande (max 200 tecken).';
+        }
+      }).catch(function () {
+        statusEl.textContent = 'Kunde inte skicka just nu, försök igen senare.';
+      }).then(function () { sendBtn.disabled = false; });
+    });
+
+    load();
+  })();
+  </script>
+"""
+
+
+def build_guestbook_html() -> str:
+    if not GUESTBOOK_URL.strip():
+        return ""
+    return GUESTBOOK_TEMPLATE.replace("__GUESTBOOK_URL__", json.dumps(GUESTBOOK_URL.strip()))
+
+
+# --------------------------------------------------------------------------
 # MIDI-SPELARE (slumpar bland .mid-filer i docs/assets/midi/)
 # --------------------------------------------------------------------------
 MIDI_TEMPLATE = """
@@ -794,6 +917,7 @@ def build_html_report(
 
     delay_banner_class = "delay-banner show" if show_delay_banner else "delay-banner"
     midi_html = build_midi_html(css_href, body_class)
+    guestbook_html = build_guestbook_html()
     # "Uppdatera"-knappen gör inget på riktigt - den är en easter egg. Klicket
     # räknas som användarinteraktion, så musikspelaren (som lyssnar på första
     # klicket på sidan) kan starta. Sidan uppdateras ändå av boten var 15:e minut.
@@ -831,6 +955,7 @@ def build_html_report(
     {render_table_rows(rows)}
   </table>
   {extra_html}
+  {guestbook_html}
   {midi_html}
 </body>
 </html>"""
