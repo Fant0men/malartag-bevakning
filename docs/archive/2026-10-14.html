@@ -9,14 +9,21 @@
 <body class="route-eskilstuna">
   <h1>Mälartåg-mañana</h1>
   <div class="ticker-wrap">
-    <div class="ticker-text">&quot;Frank Costanza: You&#x27;re late again, Costanza, so listen up. Starting tonight, we&#x27;re having a little sales contest. The loser gets fired, the winner gets a Waterpik.
-Estelle Costanza: [o.s.] You&#x27;re not giving away our Waterpik!
-Frank Costanza: Serenity now!&quot; — Frank Costanza</div>
+    <div class="ticker-text">&quot;Alan: I want to apologize for..
+Elaine: Oh, please.
+Alan: And I hope we can get past all this.
+Elaine: Past? We&#x27;re way past.
+Alan: So you have a big head.
+Elaine: So what?
+Alan: It goes well with that bump in your nose.
+Elaine: What?!
+[meanwhile, as Kramer walks along the street outside:]
+Woman: [to Kramer] Please, get help! There&#x27;s a crazy big-headed woman beating up some guy! Tell the police &quot;The Old Mill Restaurant&quot;. Hurry!&quot; — Elaine</div>
   </div>
   <div class="delay-banner show"></div>
   <div class="meta-box">
     <p class="meta">Södertälje Syd ↔ Eskilstuna C &middot; Rapport för 2026-10-14</p>
-    <p class="meta-updated">Senast uppdaterad: <span class="last-updated">11:30</span></p>
+    <p class="meta-updated">Senast uppdaterad: <span class="last-updated">11:45</span></p>
     <p class="meta-link"><a href="../stockholm/index.html">STOCKHOLM</a></p>
   </div>
   
@@ -62,7 +69,7 @@ Frank Costanza: Serenity now!&quot; — Frank Costanza</div>
 <tr class='ontime'><td>936</td><td>Södertälje Syd</td><td>12:43</td><td>I tid</td></tr>
 <tr class='ontime'><td>933</td><td>Eskilstuna C</td><td>12:56</td><td>I tid</td></tr>
 <tr class='delayed'><td>932</td><td>Södertälje Syd</td><td>11:42</td><td>9 min sen</td></tr>
-<tr class='ontime'><td>929</td><td>Eskilstuna C</td><td>11:57</td><td>I tid</td></tr>
+<tr class='delayed'><td>929</td><td>Eskilstuna C</td><td>11:57</td><td>2 min sen</td></tr>
 <tr class='delayed'><td>928</td><td>Södertälje Syd</td><td>10:44</td><td>13 min sen</td></tr>
 <tr class='delayed'><td>924</td><td>Södertälje Syd</td><td>09:44</td><td>12 min sen</td></tr>
 <tr class='cancelled'><td>919</td><td>Eskilstuna C</td><td>09:58</td><td>Inställt</td></tr>
@@ -84,7 +91,7 @@ Frank Costanza: Serenity now!&quot; — Frank Costanza</div>
   <script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.58,npm/@magenta/music@1.23.1/es6/core.js,npm/focus-visible@5,npm/html-midi-player@1.5.0"></script>
   <script>
   (function () {
-    var tracks = [{"url": "../assets/midi/Burning-Love-1.mid", "name": "Burning-Love-1"}, {"url": "../assets/midi/C.DOUGLAS.Kung%20fu%20fighting%20K.mid", "name": "C.DOUGLAS.Kung fu fighting K"}, {"url": "../assets/midi/Ghostbusters-%28From-%27Ghostbusters%27%29-1.mid", "name": "Ghostbusters-(From-'Ghostbusters')-1"}, {"url": "../assets/midi/Money-Money-Money-4.mid", "name": "Money-Money-Money-4"}, {"url": "../assets/midi/Never-Gonna-Give-You-Up-3.mid", "name": "Never-Gonna-Give-You-Up-3"}, {"url": "../assets/midi/Only-The-Lonely-2.mid", "name": "Only-The-Lonely-2"}, {"url": "../assets/midi/Theme-From-%27Twin-Peaks%27-2.mid", "name": "Theme-From-'Twin-Peaks'-2"}];
+    var tracks = [{"url": "../assets/midi/Backstreet%20Boys%20-%20As%20Long%20As%20You%20Love%20Me.mid", "name": "Backstreet Boys - As Long As You Love Me"}, {"url": "../assets/midi/Backstreet%20Boys%20-%20Everybody.mid", "name": "Backstreet Boys - Everybody"}, {"url": "../assets/midi/Backstreet%20Boys%20-%20I%20Want%20It%20That%20Way.mid", "name": "Backstreet Boys - I Want It That Way"}, {"url": "../assets/midi/Burning-Love-1.mid", "name": "Burning-Love-1"}, {"url": "../assets/midi/C.DOUGLAS.Kung%20fu%20fighting%20K.mid", "name": "C.DOUGLAS.Kung fu fighting K"}, {"url": "../assets/midi/Ghostbusters-%28From-%27Ghostbusters%27%29-1.mid", "name": "Ghostbusters-(From-'Ghostbusters')-1"}, {"url": "../assets/midi/Money-Money-Money-4.mid", "name": "Money-Money-Money-4"}, {"url": "../assets/midi/Never-Gonna-Give-You-Up-3.mid", "name": "Never-Gonna-Give-You-Up-3"}, {"url": "../assets/midi/Only-The-Lonely-2.mid", "name": "Only-The-Lonely-2"}, {"url": "../assets/midi/Ozzy%20Osbourne%20-%20Crazy%20Train.mid", "name": "Ozzy Osbourne - Crazy Train"}, {"url": "../assets/midi/Theme-From-%27Twin-Peaks%27-2.mid", "name": "Theme-From-'Twin-Peaks'-2"}, {"url": "../assets/midi/if_i_can_dream-Elvis-kar_gl.mid", "name": "if i can dream-Elvis-kar gl"}];
     if (!tracks.length) { document.getElementById('music-box').style.display = 'none'; return; }
     var player = document.getElementById('midi-player');
     var toggle = document.getElementById('music-toggle');
