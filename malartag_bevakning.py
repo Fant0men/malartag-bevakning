@@ -662,7 +662,6 @@ MIDI_TEMPLATE = """
   <div class="music-box" id="music-box">
     <button id="music-toggle" type="button">&#128263; Musik: AV</button>
     <button id="music-next" type="button">&#9197; Slumpa l&aring;t</button>
-    <span id="music-title"></span>
   </div>
   <midi-player id="midi-player" sound-font style="display:none"></midi-player>
   <script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.58,npm/@magenta/music@1.23.1/es6/core.js,npm/focus-visible@5,npm/html-midi-player@1.5.0"></script>
@@ -673,14 +672,12 @@ MIDI_TEMPLATE = """
     var player = document.getElementById('midi-player');
     var toggle = document.getElementById('music-toggle');
     var nextBtn = document.getElementById('music-next');
-    var title = document.getElementById('music-title');
     var wantMusic = true;
     try { wantMusic = localStorage.getItem('musik') !== 'av'; } catch (e) {}
     var playing = false, last = -1, suppress = 0, started = false;
 
     function render() {
       toggle.innerHTML = playing ? '&#128266; Musik: P&Aring;' : '&#128263; Musik: AV';
-      if (!playing) title.textContent = '';
     }
     function pick() {
       if (tracks.length < 2) return 0;
@@ -695,7 +692,6 @@ MIDI_TEMPLATE = """
       stopPlayer();
       var i = pick(); last = i;
       playing = true;
-      title.textContent = '♪ ' + tracks[i].name;
       render();
       var onLoad = function () { player.removeEventListener('load', onLoad); player.start(); };
       player.addEventListener('load', onLoad);
@@ -798,6 +794,15 @@ def build_html_report(
 
     delay_banner_class = "delay-banner show" if show_delay_banner else "delay-banner"
     midi_html = build_midi_html(css_href, body_class)
+    # "Uppdatera"-knappen gör inget på riktigt - den är en easter egg. Klicket
+    # räknas som användarinteraktion, så musikspelaren (som lyssnar på första
+    # klicket på sidan) kan starta. Sidan uppdateras ändå av boten var 15:e minut.
+    refresh_html = (
+        '<p class="refresh-wrap"><button id="refresh-btn" type="button" '
+        'onclick="var b=this;b.innerHTML=\'&#10004; Uppdaterad!\';'
+        'setTimeout(function(){b.innerHTML=\'&#128260; Uppdatera\';},2000);">'
+        '&#128260; Uppdatera</button></p>'
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="sv">
@@ -819,6 +824,7 @@ def build_html_report(
     <p class="meta-link"><a href="{other_route_href}">{other_route_label}</a></p>
   </div>
   {compensation_html}
+  {refresh_html}
   {nav_html}
   <table>
     <tr><th>Tåg</th><th>Station</th><th>Tid</th><th>Status</th></tr>
