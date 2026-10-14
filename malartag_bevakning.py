@@ -28,6 +28,7 @@ import re
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
+from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 import requests
@@ -654,6 +655,118 @@ def render_table_rows(rows: list[dict]) -> str:
     return table_rows
 
 
+# --------------------------------------------------------------------------
+# MIDI-SPELARE (slumpar bland .mid-filer i docs/assets/midi/)
+# --------------------------------------------------------------------------
+MIDI_TEMPLATE = """
+  <div class="music-box" id="music-box">
+    <button id="music-toggle" type="button">&#128263; Musik: AV</button>
+    <button id="music-next" type="button">&#9197; Slumpa l&aring;t</button>
+    <span id="music-title"></span>
+  </div>
+  <midi-player id="midi-player" sound-font style="display:none"></midi-player>
+  <script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.58,npm/@magenta/music@1.23.1/es6/core.js,npm/focus-visible@5,npm/html-midi-player@1.5.0"></script>
+  <script>
+  (function () {
+    var tracks = __TRACKS__;
+    if (!tracks.length) { document.getElementById('music-box').style.display = 'none'; return; }
+    var player = document.getElementById('midi-player');
+    var toggle = document.getElementById('music-toggle');
+    var nextBtn = document.getElementById('music-next');
+    var title = document.getElementById('music-title');
+    var wantMusic = true;
+    try { wantMusic = localStorage.getItem('musik') !== 'av'; } catch (e) {}
+    var playing = false, last = -1, suppress = 0, started = false;
+
+    function render() {
+      toggle.innerHTML = playing ? '&#128266; Musik: P&Aring;' : '&#128263; Musik: AV';
+      if (!playing) title.textContent = '';
+    }
+    function pick() {
+      if (tracks.length < 2) return 0;
+      var i;
+      do { i = Math.floor(Math.random() * tracks.length); } while (i === last);
+      return i;
+    }
+    function stopPlayer() {
+      if (player.playing) { suppress++; player.stop(); }
+    }
+    function playRandom() {
+      stopPlayer();
+      var i = pick(); last = i;
+      playing = true;
+      title.textContent = '♪ ' + tracks[i].name;
+      render();
+      var onLoad = function () { player.removeEventListener('load', onLoad); player.start(); };
+      player.addEventListener('load', onLoad);
+      player.src = tracks[i].url;
+    }
+    function turnOff() {
+      playing = false; stopPlayer(); render();
+      try { localStorage.setItem('musik', 'av'); } catch (e) {}
+    }
+    function turnOn() {
+      try { localStorage.setItem('musik', 'pa'); } catch (e) {}
+      playRandom();
+    }
+
+    customElements.whenDefined('midi-player').then(function () {
+      player.addEventListener('stop', function () {
+        if (suppress > 0) { suppress--; return; }
+        if (playing) playRandom();   // låten tog slut -> slumpa nästa
+      });
+      toggle.addEventListener('click', function () { playing ? turnOff() : turnOn(); });
+      nextBtn.addEventListener('click', function () { turnOn(); });
+
+      // Webbläsare tillåter inte ljud förrän besökaren klickat/tryckt något.
+      // Startar därför vid första klick/tryck/tangent var som helst på sidan.
+      var first = function (ev) {
+        if (ev.target && ev.target.closest && ev.target.closest('#music-box')) return;
+        if (started) return;
+        started = true;
+        ['click', 'keydown', 'touchend'].forEach(function (t) { document.removeEventListener(t, first, true); });
+        if (wantMusic) turnOn();
+      };
+      ['click', 'keydown', 'touchend'].forEach(function (t) { document.addEventListener(t, first, true); });
+      render();
+    });
+  })();
+  </script>
+"""
+
+
+def build_midi_html(css_href: str, body_class: str) -> str:
+    """
+    Bygger musikspelaren. Alla .mid/.midi-filer i docs/assets/midi/ (eller
+    docs/assets-stockholm/midi/ för Stockholm-rutten, om mappen finns) hittas
+    automatiskt vid varje bygge - släng bara in nya filer, ingen kodändring.
+    """
+    docs_root = Path(__file__).parent / "docs"
+    asset_folder = "assets"
+    if "stockholm" in body_class and (docs_root / "assets-stockholm" / "midi").is_dir():
+        asset_folder = "assets-stockholm"
+    midi_dir = docs_root / asset_folder / "midi"
+    if not midi_dir.is_dir():
+        return ""
+
+    # css_href är "style.css", "../style.css" eller "../../style.css" - samma
+    # prefix leder till docs/-roten oavsett hur djupt sidan ligger.
+    prefix = css_href[: -len("style.css")]
+    files = sorted(
+        f for f in midi_dir.iterdir() if f.suffix.lower() in (".mid", ".midi")
+    )
+    tracks = [
+        {"url": f"{prefix}{asset_folder}/midi/{quote(f.name)}", "name": f.stem.replace("_", " ")}
+        for f in files
+    ]
+    if not tracks:
+        return ""
+    # </ i JSON får aldrig avsluta script-taggen i förtid.
+    tracks_json = json.dumps(tracks, ensure_ascii=False).replace("</", "<\\/")
+    return MIDI_TEMPLATE.replace("__TRACKS__", tracks_json)
+
+
+
 def build_html_report(
     rows: list[dict],
     report_date: str,
@@ -684,6 +797,7 @@ def build_html_report(
   </table>"""
 
     delay_banner_class = "delay-banner show" if show_delay_banner else "delay-banner"
+    midi_html = build_midi_html(css_href, body_class)
 
     return f"""<!DOCTYPE html>
 <html lang="sv">
@@ -711,6 +825,7 @@ def build_html_report(
     {render_table_rows(rows)}
   </table>
   {extra_html}
+  {midi_html}
 </body>
 </html>"""
 
