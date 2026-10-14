@@ -263,3 +263,19 @@ body.route-stockholm {
   background-color: #2039b3;
   background-image: url("assets-stockholm/snoww.gif");
 }
+
+.music-box {
+  text-align: center;
+  background: #000000;
+  border: 3px outset #3CC490;
+  padding: 0.4rem;
+  margin-top: 1rem;
+}
+.music-box button {
+  font-family: "Courier New", monospace;
+  background: #EFFFFF;
+  color: #00C0C0;
+  border: 2px outset #3CC490;
+  cursor: pointer;
+}
+#music-title { color: #33ff33; font-size: 0.8rem; margin-left: 0.5rem; }
