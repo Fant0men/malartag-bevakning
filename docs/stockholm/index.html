@@ -9,12 +9,12 @@
 <body class="route-stockholm">
   <h1>Mälartåg-mañana</h1>
   <div class="ticker-wrap">
-    <div class="ticker-text">Ovanför pissoaren så var det kakelplattor. Det var första gången som jag bestämde mig för att nu ska jag aldrig mer pissa i en pissränna. När jag står där och pissar så ser jag hur det i kaklet blixtrar till. En reflektion från en kamerablixt i kaklet. - Magnus Uggla</div>
+    <div class="ticker-text">När jag började träffa tjejer när jag var sådär 15-16 så var det ingen som sagt att det fanns något spel. Jag var uppfostrad att vara artig. Man ringde och höll det, hade man sagt att man skulle ringa klockan 18 så ringde man klockan 18. Om hon inte hade ringt till mig klockan 18 så ringde jag upp och frågade. - Magnus Uggla</div>
   </div>
   <div class="delay-banner show"></div>
   <div class="meta-box">
     <p class="meta">Södertälje Syd ↔ Stockholm C &middot; Rapport för 2026-10-14</p>
-    <p class="meta-updated">Senast uppdaterad: <span class="last-updated">13:15</span></p>
+    <p class="meta-updated">Senast uppdaterad: <span class="last-updated">13:23</span></p>
     <p class="meta-link"><a href="../index.html">Huvudsidan (Eskilstuna)</a></p>
   </div>
   <div class="kr-box">
@@ -51,7 +51,7 @@
 <tr class='ontime'><td>236</td><td>Stockholm C</td><td>16:14</td><td>I tid</td></tr>
 <tr class='ontime'><td>234</td><td>Stockholm C</td><td>15:14</td><td>I tid</td></tr>
 <tr class='ontime'><td>232</td><td>Stockholm C</td><td>14:14</td><td>I tid</td></tr>
-<tr class='delayed'><td>230</td><td>Stockholm C</td><td>13:13</td><td>11 min sen</td></tr>
+<tr class='delayed'><td>230</td><td>Stockholm C</td><td>13:13</td><td>10 min sen</td></tr>
 <tr class='delayed'><td>228</td><td>Stockholm C</td><td>12:14</td><td>5 min sen</td></tr>
 <tr class='delayed'><td>226</td><td>Stockholm C</td><td>11:14</td><td>11 min sen</td></tr>
 <tr class='delayed'><td>224</td><td>Stockholm C</td><td>10:14</td><td>9 min sen</td></tr>
@@ -88,7 +88,7 @@
 <tr class='ontime'><td>946</td><td>Stockholm C</td><td>15:05</td><td>I tid</td></tr>
 <tr class='delayed'><td>941</td><td>Södertälje Syd</td><td>14:16</td><td>5 min sen</td></tr>
 <tr class='ontime'><td>940</td><td>Stockholm C</td><td>14:05</td><td>I tid</td></tr>
-<tr class='ontime'><td>937</td><td>Södertälje Syd</td><td>13:16</td><td>I tid</td></tr>
+<tr class='delayed'><td>937</td><td>Södertälje Syd</td><td>13:16</td><td>1 min sen</td></tr>
 <tr class='delayed'><td>936</td><td>Stockholm C</td><td>13:05</td><td>1 min sen</td></tr>
 <tr class='ontime'><td>933</td><td>Södertälje Syd</td><td>12:16</td><td>I tid</td></tr>
 <tr class='delayed'><td>932</td><td>Stockholm C</td><td>12:04</td><td>9 min sen</td></tr>
@@ -113,6 +113,114 @@
 <tr class='delayed'><td>118</td><td>Stockholm C</td><td>07:02</td><td>3 min sen</td></tr>
 
   </table>
+  
+  <div class="guestbook" id="guestbook">
+    <div class="guestbook-title">&#9997; G&Auml;STBOK &#9997;</div>
+    <form id="gb-form" autocomplete="off">
+      <input type="text" id="gb-name" maxlength="30" placeholder="Ditt namn" required>
+      <textarea id="gb-message" maxlength="200" rows="3" placeholder="Skriv n&aring;got (max 200 tecken)" required></textarea>
+      <input type="text" id="gb-website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+             style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
+      <div class="gb-row">
+        <span id="gb-count">0 / 200</span>
+        <button type="submit" id="gb-send">Skriv i g&auml;stboken</button>
+      </div>
+      <div id="gb-status" role="status"></div>
+    </form>
+    <div id="gb-entries"></div>
+  </div>
+  <script>
+  (function () {
+    var API = "https://gastbok.minifruttiman.workers.dev";
+    var form = document.getElementById('gb-form');
+    var nameEl = document.getElementById('gb-name');
+    var msgEl = document.getElementById('gb-message');
+    var countEl = document.getElementById('gb-count');
+    var sendBtn = document.getElementById('gb-send');
+    var statusEl = document.getElementById('gb-status');
+    var listEl = document.getElementById('gb-entries');
+    var fmt;
+    try {
+      fmt = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit',
+        day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    } catch (e) { fmt = null; }
+
+    try { nameEl.value = localStorage.getItem('gb-name') || ''; } catch (e) {}
+
+    function stamp(iso) {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return fmt ? fmt.format(d) : d.toISOString().replace('T', ' ').slice(0, 16);
+    }
+    function render(entries) {
+      listEl.textContent = '';
+      if (!entries.length) {
+        var empty = document.createElement('div');
+        empty.className = 'gb-empty';
+        empty.textContent = 'Inga inlägg ännu - bli först!';
+        listEl.appendChild(empty);
+        return;
+      }
+      entries.forEach(function (e) {
+        var box = document.createElement('div');
+        box.className = 'gb-entry';
+        var head = document.createElement('div');
+        head.className = 'gb-head';
+        var who = document.createElement('span');
+        who.className = 'gb-name';
+        who.textContent = e.name;               // textContent = aldrig HTML-injektion
+        var when = document.createElement('span');
+        when.className = 'gb-time';
+        when.textContent = stamp(e.ts);
+        head.appendChild(who);
+        head.appendChild(when);
+        var body = document.createElement('div');
+        body.className = 'gb-msg';
+        body.textContent = e.message;
+        box.appendChild(head);
+        box.appendChild(body);
+        listEl.appendChild(box);
+      });
+    }
+    function load() {
+      fetch(API, { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) { render(d.entries || []); })
+        .catch(function () { listEl.textContent = 'Kunde inte hämta gästboken just nu.'; });
+    }
+    msgEl.addEventListener('input', function () { countEl.textContent = msgEl.value.length + ' / 200'; });
+
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      statusEl.textContent = '';
+      sendBtn.disabled = true;
+      fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: nameEl.value, message: msgEl.value,
+          website: document.getElementById('gb-website').value
+        })
+      }).then(function (r) {
+        if (r.status === 201 || r.status === 200) {
+          try { localStorage.setItem('gb-name', nameEl.value); } catch (e) {}
+          msgEl.value = ''; countEl.textContent = '0 / 200';
+          statusEl.textContent = 'Tack för ditt inlägg!';
+          load();
+        } else if (r.status === 429) {
+          statusEl.textContent = 'Du har redan skrivit i gästboken idag - kom tillbaka imorgon!';
+        } else {
+          statusEl.textContent = 'Något gick fel - kontrollera namn och meddelande (max 200 tecken).';
+        }
+      }).catch(function () {
+        statusEl.textContent = 'Kunde inte skicka just nu, försök igen senare.';
+      }).then(function () { sendBtn.disabled = false; });
+    });
+
+    load();
+  })();
+  </script>
+
   
   <div class="music-box" id="music-box">
     <button id="music-toggle" type="button">&#128263; Musik: AV</button>
