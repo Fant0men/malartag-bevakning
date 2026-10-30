@@ -76,14 +76,14 @@ LONG_DISTANCE_TRAIN_NUMBERS_STOCKHOLM: list[str] = [
 ]
 
 DELAY_THRESHOLD_MIN = 16
-LONG_DISTANCE_DELAY_THRESHOLD_MIN = 60
+LONG_DISTANCE_DELAY_THRESHOLD_MIN = 20
 
 # Ersättning per försening. Ligger separat från notiströsklarna ovan - en
 # försening på 16-19 min på kortdistans ger notis men ingen ersättning.
 # Gäller lika för båda rutterna.
 SHORT_COMP_THRESHOLD_MIN = 20
 SHORT_COMP_KR = 19
-LONG_COMP_THRESHOLD_MIN = 60
+LONG_COMP_THRESHOLD_MIN = 20
 LONG_COMP_KR = 37
 
 # ============================================================================
