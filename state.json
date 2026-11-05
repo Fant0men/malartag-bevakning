@@ -134,7 +134,7 @@
   "eskilstuna_955_Södertälje Syd_2026-11-05T17:12:00.000+01:00": "cancelled",
   "eskilstuna_10923_Eskilstuna C_2026-11-05T17:29:00.000+01:00": "cancelled",
   "eskilstuna_959_Södertälje Syd_2026-11-05T18:16:00.000+01:00": "cancelled",
-  "eskilstuna_965_Södertälje Syd_2026-11-05T19:16:00.000+01:00": "cancelled",
+  "eskilstuna_965_Södertälje Syd_2026-11-05T19:16:00.000+01:00": 47,
   "eskilstuna_10925_Södertälje Syd_2026-11-05T17:46:00.000+01:00": "cancelled",
   "eskilstuna_10925_Eskilstuna C_2026-11-05T18:26:00.000+01:00": "cancelled",
   "eskilstuna_20958_Eskilstuna C_2026-11-05T16:55:00.000+01:00": 26,
@@ -143,8 +143,8 @@
   "eskilstuna_20958_Södertälje Syd_2026-11-05T17:43:00.000+01:00": 22,
   "eskilstuna_964_Södertälje Syd_2026-11-05T18:43:00.000+01:00": 67,
   "eskilstuna_970_Eskilstuna C_2026-11-05T18:55:00.000+01:00": 44,
-  "eskilstuna_965_Eskilstuna C_2026-11-05T19:56:00.000+01:00": 37,
+  "eskilstuna_965_Eskilstuna C_2026-11-05T19:56:00.000+01:00": 44,
   "eskilstuna_970_Södertälje Syd_2026-11-05T19:43:00.000+01:00": 40,
-  "eskilstuna_976_Eskilstuna C_2026-11-05T20:00:00.000+01:00": 28,
-  "eskilstuna_976_Södertälje Syd_2026-11-05T20:43:00.000+01:00": 21
+  "eskilstuna_976_Eskilstuna C_2026-11-05T20:00:00.000+01:00": 29,
+  "eskilstuna_976_Södertälje Syd_2026-11-05T20:43:00.000+01:00": 22
 }
